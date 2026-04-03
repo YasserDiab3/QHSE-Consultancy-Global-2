@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx *)"
+      "Bash(npx *)",
+      "Bash($env:database_url='postgresql://postgres:qhssedb2024!@db.whyssmlxtfvobclgleno.supabase.co:5432/postgres')"
     ]
-  }
+  },
+  "$version": 3
 }
