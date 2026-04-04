@@ -1,7 +1,6 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -15,13 +14,14 @@ model User {
   password      String
   role          String    @default("CLIENT")
   language      String    @default("en")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now()) @map("createdat")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat")
   client        Client?
   activityLogs  ActivityLog[]
   reports       Report[]  @relation("ConsultantReports")
 
   @@index([email])
+  @@map("User")
 }
 
 model Client {
@@ -33,11 +33,12 @@ model Client {
   contactInfo   String?
   phone         String?
   address       String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime  @default(now()) @map("createdat")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat")
   reports       Report[]
 
   @@index([userId])
+  @@map("Client")
 }
 
 model Report {
@@ -53,12 +54,13 @@ model Report {
   notes         String?
   notesAr       String?
   status        String         @default("OPEN")
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @map("createdat")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updatedat")
   observations  Observation[]
 
   @@index([clientId])
   @@index([date])
+  @@map("Report")
 }
 
 model Observation {
@@ -72,11 +74,12 @@ model Observation {
   riskLevel     String
   status        String         @default("OPEN")
   sortOrder     Int            @default(0)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now()) @map("createdat")
+  updatedAt     DateTime       @default(now()) @updatedAt @map("updatedat")
   images        Image[]
 
   @@index([reportId])
+  @@map("Observation")
 }
 
 model Image {
@@ -88,9 +91,10 @@ model Image {
   originalName   String?
   mimeType       String?
   size           Int?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime @default(now()) @map("createdat")
 
   @@index([observationId])
+  @@map("Image")
 }
 
 model ActivityLog {
@@ -102,8 +106,9 @@ model ActivityLog {
   entityId    String?
   details     String?
   ipAddress   String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime @default(now()) @map("createdat")
 
   @@index([userId])
-  @@index([createdAt])
+  @@index([createdAt(sort: Desc)])
+  @@map("ActivityLog")
 }
