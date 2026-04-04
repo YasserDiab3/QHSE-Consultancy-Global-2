@@ -2,15 +2,13 @@
 
 import { useLanguage } from '@/context'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useState, Suspense } from 'react'
+import { Suspense, useState } from 'react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { Shield, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 
 function LoginForm() {
   const { t } = useLanguage()
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,23 +19,17 @@ function LoginForm() {
     setLoading(true)
 
     try {
+      // Use redirect: true to let NextAuth handle the redirect properly
       const result = await signIn('credentials', {
         email,
         password,
-        redirect: false,
+        redirect: true,
+        callbackUrl: '/dashboard',
       })
-
+      
+      // If we get here, something went wrong (should have redirected)
       if (result?.error) {
-        if (result.error.includes('Database connection')) {
-          toast.error('Database connection error. Please contact support.')
-        } else {
-          toast.error(result.error === 'Invalid email or password'
-            ? 'Invalid email or password'
-            : 'Login failed. Please try again.')
-        }
-      } else {
-        // Use window.location for reliable redirect after NextAuth login
-        window.location.href = '/dashboard'
+        toast.error('Invalid email or password')
       }
     } catch (error) {
       toast.error('An unexpected error occurred')

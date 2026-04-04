@@ -3,11 +3,18 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+  const token = await getToken({
+    req: request,
+    secret: process.env.NEXTAUTH_SECRET,
+    cookieName: process.env.NODE_ENV === 'production'
+      ? '__Secure-next-auth.session-token'
+      : 'next-auth.session-token',
+  })
+
   const { pathname } = request.nextUrl
 
   // Public paths that don't require auth
-  const publicPaths = ['/', '/about', '/services', '/contact', '/login', '/api/auth', '/uploads', '/locales', '/_next', '/favicon']
+  const publicPaths = ['/', '/about', '/services', '/contact', '/login', '/api/auth', '/uploads', '/locales', '/_next', '/favicon', '/api/health']
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
 
   // Dashboard routes require auth
@@ -43,5 +50,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/about/:path*', '/services/:path*', '/contact/:path*', '/login', '/dashboard/:path*', '/admin/:path*', '/api/:path*'],
+  matcher: [
+    '/',
+    '/about/:path*',
+    '/services/:path*',
+    '/contact/:path*',
+    '/login',
+    '/dashboard/:path*',
+    '/admin/:path*',
+    '/api/:path*',
+  ],
 }
