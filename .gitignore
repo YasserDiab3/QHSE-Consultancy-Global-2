@@ -1,0 +1,13 @@
+node_modules
+.next
+.qwen
+.env
+.env.local
+.env.production
+.env.production.local
+.DS_Store
+*.log
+prisma/*.db
+prisma/*.db-journal
+uploads/*
+!uploads/.gitkeep
