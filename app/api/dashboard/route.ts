@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getClientIdByUserId } from '@/lib/client-records'
+import { listReportRecords } from '@/lib/report-records'
 
 export async function GET(request: Request) {
   try {
@@ -14,73 +15,40 @@ export async function GET(request: Request) {
       ? await getClientIdByUserId(session.user.id)
       : null
 
-    const reports = await prisma.report.count({
-      where: clientId ? { clientId } : undefined,
+    const reports = await listReportRecords({
+      clientId: clientId ?? undefined,
     })
+    const reportIds = reports.map((report) => report.id)
 
     const openObservations = await prisma.observation.count({
-      where: clientId
-        ? {
-            report: {
-              clientId,
-            },
-            status: 'OPEN',
-          }
-        : {
-            status: 'OPEN',
-          },
+      where: {
+        ...(reportIds.length > 0 ? { reportId: { in: reportIds } } : clientId ? { reportId: '__none__' } : {}),
+        status: 'OPEN',
+      },
     })
 
-    const closedReports = await prisma.report.count({
-      where: clientId
-        ? {
-            clientId,
-            status: 'CLOSED',
-          }
-        : {
-            status: 'CLOSED',
-          },
-    })
+    const closedReports = reports.filter((report) => report.status === 'CLOSED').length
 
     const highRiskItems = await prisma.observation.count({
-      where: clientId
-        ? {
-            report: {
-              clientId,
-            },
-            riskLevel: {
-              in: ['HIGH', 'CRITICAL'],
-            },
-            status: {
-              in: ['OPEN', 'IN_PROGRESS'],
-            },
-          }
-        : {
-            riskLevel: {
-              in: ['HIGH', 'CRITICAL'],
-            },
-            status: {
-              in: ['OPEN', 'IN_PROGRESS'],
-            },
-          },
+      where: {
+        ...(reportIds.length > 0 ? { reportId: { in: reportIds } } : clientId ? { reportId: '__none__' } : {}),
+        riskLevel: {
+          in: ['HIGH', 'CRITICAL'],
+        },
+        status: {
+          in: ['OPEN', 'IN_PROGRESS'],
+        },
+      },
     })
 
     const riskBreakdown = await prisma.observation.groupBy({
       by: ['riskLevel'],
-      where: clientId
-        ? {
-            report: {
-              clientId,
-            },
-            status: {
-              in: ['OPEN', 'IN_PROGRESS'],
-            },
-          }
-        : {
-            status: {
-              in: ['OPEN', 'IN_PROGRESS'],
-            },
-          },
+      where: {
+        ...(reportIds.length > 0 ? { reportId: { in: reportIds } } : clientId ? { reportId: '__none__' } : {}),
+        status: {
+          in: ['OPEN', 'IN_PROGRESS'],
+        },
+      },
       _count: {
         riskLevel: true,
       },
@@ -88,40 +56,21 @@ export async function GET(request: Request) {
 
     const statusBreakdown = await prisma.observation.groupBy({
       by: ['status'],
-      where: clientId
-        ? {
-            report: {
-              clientId,
-            },
-          }
-        : undefined,
+      where: reportIds.length > 0 ? { reportId: { in: reportIds } } : clientId ? { reportId: '__none__' } : undefined,
       _count: {
         status: true,
       },
     })
 
-    const recentReports = await prisma.report.findMany({
-      where: clientId
-        ? {
-            clientId,
-          }
-        : undefined,
-      take: 5,
-      orderBy: {
-        date: 'desc',
+    const recentReports = reports.slice(0, 5).map((report) => ({
+      ...report,
+      _count: {
+        observations: report.observations.length,
       },
-      include: {
-        client: true,
-        _count: {
-          select: {
-            observations: true,
-          },
-        },
-      },
-    })
+    }))
 
     return NextResponse.json({
-      totalReports: reports,
+      totalReports: reports.length,
       openObservations,
       closedReports,
       highRiskItems,

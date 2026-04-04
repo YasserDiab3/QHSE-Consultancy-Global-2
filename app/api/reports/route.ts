@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
 import { sendNotificationEmail } from '@/lib/email'
 import { getClientIdByUserId } from '@/lib/client-records'
+import { createReportRecord, getReportRecordById, listReportRecords } from '@/lib/report-records'
 
 export async function GET(request: Request) {
   try {
@@ -20,59 +20,21 @@ export async function GET(request: Request) {
     const dateTo = searchParams.get('dateTo')
     const category = searchParams.get('category')
 
-    const where: any = {}
-
-    // Filter by client (clients can only see their own reports)
+    let clientId: string | undefined
     if (session.user.role === 'CLIENT') {
-      const clientId = await getClientIdByUserId(session.user.id)
-      if (clientId) {
-        where.clientId = clientId
-      } else {
+      clientId = await getClientIdByUserId(session.user.id) ?? undefined
+      if (!clientId) {
         return NextResponse.json([])
       }
     }
 
-    // Apply filters
-    if (status) where.status = status
-    if (category) where.category = category
-    if (dateFrom) where.date = { ...where.date, gte: new Date(dateFrom) }
-    if (dateTo) where.date = { ...where.date, lte: new Date(dateTo) }
-    if (riskLevel) {
-      where.observations = {
-        some: { riskLevel },
-      }
-    }
-
-    const reports = await prisma.report.findMany({
-      where,
-      include: {
-        observations: {
-          include: {
-            images: true,
-          },
-          orderBy: {
-            sortOrder: 'asc',
-          },
-        },
-        client: {
-          include: {
-            user: {
-              select: {
-                name: true,
-                email: true,
-              },
-            },
-          },
-        },
-        consultant: {
-          select: {
-            name: true,
-          },
-        },
-      },
-      orderBy: {
-        date: 'desc',
-      },
+    const reports = await listReportRecords({
+      clientId,
+      status,
+      riskLevel,
+      dateFrom,
+      dateTo,
+      category,
     })
 
     return NextResponse.json(reports)
@@ -98,28 +60,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const report = await prisma.report.create({
-      data: {
-        clientId,
-        date: new Date(date),
-        siteName,
-        siteNameAr,
-        category,
-        status: status || 'OPEN',
-        consultantId: consultantId || undefined,
-        notes,
-        notesAr,
-      },
-      include: {
-        client: {
-          include: {
-            user: {
-              select: { email: true },
-            },
-          },
-        },
-      },
+    const reportId = await createReportRecord({
+      clientId,
+      date,
+      siteName,
+      siteNameAr,
+      category,
+      status: status || 'OPEN',
+      consultantId,
+      notes,
+      notesAr,
     })
+
+    const report = await getReportRecordById(reportId)
+    if (!report) {
+      throw new Error('Failed to load the created report')
+    }
 
     await logActivity(session.user.id, 'REPORT_CREATED', 'report', report.id, `Created report for ${siteName}`, ip)
 

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
+import { deleteReportRecord, getReportRecordById, updateReportRecord } from '@/lib/report-records'
 
 export async function PUT(
   request: Request,
@@ -20,27 +20,26 @@ export async function PUT(
 
     const { date, siteName, siteNameAr, category, consultantId, notes, notesAr, status } = body
 
-    const report = await prisma.report.update({
-      where: { id: params.id },
-      data: {
-        date: date ? new Date(date) : undefined,
-        siteName,
-        siteNameAr,
-        category,
-        consultantId: consultantId || undefined,
-        notes,
-        notesAr,
-        status,
-      },
-      include: {
-        observations: {
-          include: {
-            images: true,
-          },
-        },
-        client: true,
-      },
+    const existingReport = await getReportRecordById(params.id)
+    if (!existingReport) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    await updateReportRecord(params.id, {
+      date,
+      siteName,
+      siteNameAr,
+      category,
+      consultantId,
+      notes,
+      notesAr,
+      status,
     })
+
+    const report = await getReportRecordById(params.id)
+    if (!report) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
 
     await logActivity(session.user.id, 'REPORT_UPDATED', 'report', params.id, `Updated report ${siteName}`, ip)
 
@@ -63,17 +62,13 @@ export async function DELETE(
     const headerList = headers()
     const ip = headerList.get('x-forwarded-for') || 'unknown'
 
-    const report = await prisma.report.findUnique({
-      where: { id: params.id },
-    })
+    const report = await getReportRecordById(params.id)
 
     if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 })
     }
 
-    await prisma.report.delete({
-      where: { id: params.id },
-    })
+    await deleteReportRecord(params.id)
 
     await logActivity(session.user.id, 'REPORT_DELETED', 'report', params.id, `Deleted report`, ip)
 
