@@ -40,9 +40,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required')
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
+        let user
+        try {
+          user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          })
+        } catch (dbError: any) {
+          console.error('Database connection error:', dbError.message)
+          throw new Error('Database connection error. Please try again later.')
+        }
 
         if (!user) {
           throw new Error('Invalid email or password')
@@ -84,12 +90,14 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+    error: '/login',
   },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 }
 
 const handler = NextAuth(authOptions)

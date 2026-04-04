@@ -28,14 +28,20 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        toast.error(result.error)
+        if (result.error.includes('Database connection')) {
+          toast.error('Database connection error. Please contact support.')
+        } else {
+          toast.error(result.error === 'Invalid email or password' 
+            ? 'Invalid email or password' 
+            : 'Login failed. Please try again.')
+        }
       } else {
-        toast.success(t('common.success'))
+        toast.success('Login successful!')
         router.push('/dashboard')
         router.refresh()
       }
     } catch (error) {
-      toast.error(t('common.error'))
+      toast.error('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
@@ -44,7 +50,6 @@ function LoginForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 mb-4">
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center shadow-lg">
@@ -55,7 +60,6 @@ function LoginForm() {
           <p className="text-gray-600 mt-2">{t('auth.loginSubtitle')}</p>
         </div>
 
-        {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -69,6 +73,7 @@ function LoginForm() {
                   required
                   className="input-field pl-10"
                   placeholder="name@company.com"
+                  autoComplete="email"
                 />
               </div>
             </div>
@@ -84,6 +89,7 @@ function LoginForm() {
                   required
                   className="input-field pl-10 pr-10"
                   placeholder="••••••••"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -109,7 +115,6 @@ function LoginForm() {
           </form>
         </div>
 
-        {/* Back to home */}
         <p className="text-center mt-6 text-sm text-gray-600">
           <Link href="/" className="text-primary-500 hover:text-primary-600 font-medium">
             ← {t('common.back')}
@@ -122,7 +127,11 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary-500" /></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   )

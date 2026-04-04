@@ -119,6 +119,8 @@
     "password": "Password",
     "loginButton": "Sign In",
     "loggingIn": "Signing in...",
+    "invalidCredentials": "Invalid email or password",
+    "serviceUnavailable": "Sign-in is temporarily unavailable. Please try again shortly.",
     "forgotPassword": "Forgot Password?",
     "noAccount": "Don't have an account?",
     "resetPasswordTitle": "Reset Password",
