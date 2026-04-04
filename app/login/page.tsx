@@ -2,7 +2,7 @@
 
 import { useLanguage } from '@/context'
 import { signIn } from 'next-auth/react'
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { Shield, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
@@ -13,20 +13,37 @@ function LoginForm() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Handle redirect after successful login
+  useEffect(() => {
+    if (shouldRedirect) {
+      window.location.href = '/dashboard'
+    }
+  }, [shouldRedirect])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      await signIn('credentials', {
+      const result = await signIn('credentials', {
         email,
         password,
-        callbackUrl: '/dashboard',
+        redirect: false,
       })
-      // If we reach here, login failed (NextAuth would have redirected on success)
+
+      if (result?.error) {
+        toast.error('Invalid email or password')
+        setLoading(false)
+      } else if (result?.ok) {
+        setShouldRedirect(true)
+      } else {
+        toast.error('Login failed')
+        setLoading(false)
+      }
     } catch (error) {
-      toast.error('حدث خطأ غير متوقع')
+      toast.error('An unexpected error occurred')
       setLoading(false)
     }
   }
