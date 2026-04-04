@@ -55,6 +55,12 @@ export default function AdminDashboardClient() {
     fetchStats()
   }, [fetchStats])
 
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchStats()
+    }
+  }, [activeTab, fetchStats])
+
   const tabs = useMemo(
     () => [
       { id: 'overview' as const, label: t('dashboard.title'), icon: BarChart3 },
@@ -95,8 +101,8 @@ export default function AdminDashboardClient() {
           </div>
 
           {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} t={t} dir={dir} />}
-          {activeTab === 'reports' && <AdminReports />}
-          {activeTab === 'clients' && <AdminClients />}
+          {activeTab === 'reports' && <AdminReports onDataChanged={fetchStats} />}
+          {activeTab === 'clients' && <AdminClients onDataChanged={fetchStats} />}
           {activeTab === 'requests' && <AdminContactRequests />}
           {activeTab === 'activity' && <AdminActivityLog />}
         </div>

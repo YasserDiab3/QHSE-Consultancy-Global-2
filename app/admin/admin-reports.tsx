@@ -44,7 +44,11 @@ const createInitialFormData = () => ({
   status: 'OPEN',
 })
 
-export default function AdminReports() {
+export default function AdminReports({
+  onDataChanged,
+}: {
+  onDataChanged?: () => void | Promise<void>
+}) {
   const { t, language } = useLanguage()
   const [reports, setReports] = useState<Report[]>([])
   const [clients, setClients] = useState<any[]>([])
@@ -101,7 +105,8 @@ export default function AdminReports() {
       toast.success(editingReport ? t('admin.reportUpdated') : t('admin.reportCreated'))
       setShowForm(false)
       resetForm()
-      fetchData()
+      await fetchData()
+      await onDataChanged?.()
     } catch {
       toast.error(t('common.error'))
     }
@@ -119,7 +124,8 @@ export default function AdminReports() {
       }
 
       toast.success(t('admin.deleted'))
-      fetchData()
+      await fetchData()
+      await onDataChanged?.()
     } catch {
       toast.error(t('common.error'))
     }
@@ -350,6 +356,10 @@ export default function AdminReports() {
           onClose={() => setViewingReport(null)}
           t={t}
           language={language}
+          onDataChanged={async () => {
+            await fetchData()
+            await onDataChanged?.()
+          }}
         />
       )}
     </div>
@@ -361,11 +371,13 @@ function ViewReportModal({
   onClose,
   t,
   language,
+  onDataChanged,
 }: {
   report: Report
   onClose: () => void
   t: (key: string) => string
   language: string
+  onDataChanged?: () => void | Promise<void>
 }) {
   const [observations, setObservations] = useState<any[]>(report.observations || [])
   const [newObs, setNewObs] = useState({ title: '', titleAr: '', description: '', descriptionAr: '', riskLevel: 'LOW', status: 'OPEN' })
@@ -389,6 +401,7 @@ function ViewReportModal({
       setObservations((prev) => [...prev, data])
       setNewObs({ title: '', titleAr: '', description: '', descriptionAr: '', riskLevel: 'LOW', status: 'OPEN' })
       setShowObsForm(false)
+      await onDataChanged?.()
       toast.success(t('common.success'))
     } catch {
       toast.error(t('common.error'))
@@ -407,6 +420,7 @@ function ViewReportModal({
       }
 
       setObservations((prev) => prev.filter((o) => o.id !== id))
+      await onDataChanged?.()
       toast.success(t('admin.deleted'))
     } catch {
       toast.error(t('common.error'))

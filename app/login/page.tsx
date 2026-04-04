@@ -125,7 +125,11 @@ function LoginForm() {
         <div className="overflow-hidden rounded-[34px] border border-white/85 bg-white/92 shadow-[0_32px_100px_rgba(15,23,42,0.14)] backdrop-blur-xl">
           <div className="border-b border-slate-100 bg-gradient-to-b from-[#f9fbf4] to-white px-8 pb-8 pt-10 text-center">
             <div className="mx-auto mb-5 flex justify-center">
-              <BrandLogo variant="stacked" priority className="w-[200px] md:w-[230px]" />
+              <BrandLogo
+                variant="stacked"
+                priority
+                className="h-[170px] w-[170px] md:h-[190px] md:w-[190px]"
+              />
             </div>
             <p className="mb-4 text-xs font-semibold uppercase tracking-[0.55em] text-[#8B4D00]/72">
               {copy.portal}

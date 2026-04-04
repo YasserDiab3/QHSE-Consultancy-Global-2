@@ -35,7 +35,11 @@ type Client = {
   }
 }
 
-export default function AdminClients() {
+export default function AdminClients({
+  onDataChanged,
+}: {
+  onDataChanged?: () => void | Promise<void>
+}) {
   const { t, language, dir } = useLanguage()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
@@ -124,7 +128,8 @@ export default function AdminClients() {
         toast.success(editingClient ? t('admin.clientUpdated') : t('admin.clientCreated'))
         setShowForm(false)
         resetForm()
-        fetchData()
+        await fetchData()
+        await onDataChanged?.()
       } else {
         const data = await res.json()
         toast.error(data.error || t('common.error'))
@@ -142,7 +147,8 @@ export default function AdminClients() {
       const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' })
       if (res.ok) {
         toast.success(t('admin.deleted'))
-        fetchData()
+        await fetchData()
+        await onDataChanged?.()
       } else {
         const data = await res.json().catch(() => null)
         toast.error(data?.error || t('common.error'))

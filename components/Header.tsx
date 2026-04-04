@@ -40,7 +40,7 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className={`group flex items-center rounded-[22px] border p-1.5 shadow-lg shadow-slate-900/5 transition-all duration-300 ${
+            className={`group flex items-center overflow-hidden rounded-[20px] border p-1.5 shadow-lg shadow-slate-900/5 transition-all duration-300 ${
               scrolled
                 ? 'border-slate-200/80 bg-white/96'
                 : 'border-white/70 bg-white/92 backdrop-blur-sm'
@@ -50,7 +50,9 @@ export default function Header() {
               variant="header"
               priority
               className={`transition-all duration-300 ${
-                scrolled ? 'w-[58px] md:w-[68px]' : 'w-[62px] md:w-[74px]'
+                scrolled
+                  ? 'h-[52px] w-[52px] md:h-[60px] md:w-[60px]'
+                  : 'h-[56px] w-[56px] md:h-[64px] md:w-[64px]'
               }`}
             />
           </Link>

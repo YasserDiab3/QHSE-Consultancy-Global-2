@@ -9,7 +9,7 @@ type BrandLogoProps = {
 
 const CONFIG = {
   header: {
-    src: '/brand/qhsse-logo-stacked.svg',
+    src: '/brand/qhsse-logo-header.svg',
     width: 1024,
     height: 1024,
   },
@@ -20,8 +20,8 @@ const CONFIG = {
   },
   mark: {
     src: '/brand/qhsse-logo-mark.svg',
-    width: 256,
-    height: 256,
+    width: 1024,
+    height: 1024,
   },
 } as const
 
@@ -41,7 +41,7 @@ export default function BrandLogo({
         height={logo.height}
         priority={priority}
         unoptimized
-        className="h-auto w-full object-contain"
+        className="h-full w-full object-contain"
       />
     </div>
   )
