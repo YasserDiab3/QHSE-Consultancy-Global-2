@@ -112,6 +112,7 @@ function buildPrintMarkup(report: Report, t: (key: string) => string, language: 
   <html lang="${isArabic ? 'ar' : 'en'}" dir="${isArabic ? 'rtl' : 'ltr'}">
     <head>
       <meta charset="UTF-8" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>${escapeHtml(fileName)}</title>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -140,6 +141,8 @@ function buildPrintMarkup(report: Report, t: (key: string) => string, language: 
           background: #f4f6fa;
           color: var(--text);
           font-family: ${isArabic ? "'Cairo', sans-serif" : "'Merriweather', serif"};
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
         }
 
         body {
@@ -427,34 +430,65 @@ function buildPrintMarkup(report: Report, t: (key: string) => string, language: 
 }
 
 export async function generateReportPDF(report: Report, t: (key: string) => string, language: string) {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
     return
   }
 
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=900')
-  if (!printWindow) {
-    throw new Error('Unable to open print window')
-  }
-
   const markup = buildPrintMarkup(report, t, language)
+  const blob = new Blob([markup], { type: 'text/html;charset=utf-8' })
+  const blobUrl = URL.createObjectURL(blob)
 
-  printWindow.document.open()
-  printWindow.document.write(markup)
-  printWindow.document.close()
+  const iframe = document.createElement('iframe')
+  iframe.setAttribute('aria-hidden', 'true')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = '0'
+  iframe.style.opacity = '0'
+  iframe.src = blobUrl
 
-  await new Promise<void>((resolve) => {
-    const finish = () => {
-      printWindow.focus()
-      resolve()
+  await new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      window.setTimeout(() => {
+        iframe.remove()
+        URL.revokeObjectURL(blobUrl)
+      }, 1500)
     }
 
-    printWindow.onload = finish
-    window.setTimeout(finish, 700)
+    iframe.onload = () => {
+      const printFrame = iframe.contentWindow
+      if (!printFrame) {
+        cleanup()
+        reject(new Error('Print frame unavailable'))
+        return
+      }
+
+      const completePrint = () => {
+        cleanup()
+        resolve()
+      }
+
+      printFrame.onafterprint = completePrint
+
+      window.setTimeout(() => {
+        try {
+          printFrame.focus()
+          printFrame.print()
+          window.setTimeout(completePrint, 1200)
+        } catch (error) {
+          cleanup()
+          reject(error instanceof Error ? error : new Error('Failed to open print dialog'))
+        }
+      }, 500)
+    }
+
+    iframe.onerror = () => {
+      cleanup()
+      reject(new Error('Failed to load printable report'))
+    }
+
+    document.body.appendChild(iframe)
   })
-
-  printWindow.onafterprint = () => {
-    printWindow.close()
-  }
-
-  printWindow.print()
 }
