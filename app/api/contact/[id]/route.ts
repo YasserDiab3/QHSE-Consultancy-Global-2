@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
-import { ensureContactRequestTable, isMissingTableOrColumnError } from '@/lib/db-compat'
+
+function isMissingContactRequestTable(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return message.includes('ContactRequest') && message.includes('does not exist')
+}
 
 export async function PATCH(
   request: Request,
@@ -9,7 +13,6 @@ export async function PATCH(
 ) {
   try {
     await requireAdmin()
-    await ensureContactRequestTable()
     const body = await request.json()
     const { status } = body
 
@@ -24,9 +27,9 @@ export async function PATCH(
 
     return NextResponse.json(contactRequest)
   } catch (error: any) {
-    if (isMissingTableOrColumnError(error)) {
+    if (isMissingContactRequestTable(error)) {
       return NextResponse.json(
-        { error: 'Contact requests storage is not ready yet. Please redeploy and try again.' },
+        { error: 'Contact requests table is missing in the database. Please run the latest deployment sync.' },
         { status: 500 }
       )
     }

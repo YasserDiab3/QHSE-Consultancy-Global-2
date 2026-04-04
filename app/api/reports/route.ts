@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
 import { sendNotificationEmail } from '@/lib/email'
+import { getClientIdByUserId } from '@/lib/client-records'
 
 export async function GET(request: Request) {
   try {
@@ -23,11 +24,9 @@ export async function GET(request: Request) {
 
     // Filter by client (clients can only see their own reports)
     if (session.user.role === 'CLIENT') {
-      const client = await prisma.client.findUnique({
-        where: { userId: session.user.id },
-      })
-      if (client) {
-        where.clientId = client.id
+      const clientId = await getClientIdByUserId(session.user.id)
+      if (clientId) {
+        where.clientId = clientId
       } else {
         return NextResponse.json([])
       }

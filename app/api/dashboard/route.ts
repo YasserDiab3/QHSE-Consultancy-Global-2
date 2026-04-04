@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { getClientIdByUserId } from '@/lib/client-records'
 
 export async function GET(request: Request) {
   try {
@@ -9,21 +10,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const clientId = session.user.role === 'CLIENT'
+      ? await getClientIdByUserId(session.user.id)
+      : null
+
     const reports = await prisma.report.count({
-      where: session.user.role === 'CLIENT' ? {
-        client: {
-          userId: session.user.id,
-        },
-      } : undefined,
+      where: clientId ? { clientId } : undefined,
     })
 
     const openObservations = await prisma.observation.count({
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
             report: {
-              client: {
-                userId: session.user.id,
-              },
+              clientId,
             },
             status: 'OPEN',
           }
@@ -33,11 +32,9 @@ export async function GET(request: Request) {
     })
 
     const closedReports = await prisma.report.count({
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
-            client: {
-              userId: session.user.id,
-            },
+            clientId,
             status: 'CLOSED',
           }
         : {
@@ -46,12 +43,10 @@ export async function GET(request: Request) {
     })
 
     const highRiskItems = await prisma.observation.count({
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
             report: {
-              client: {
-                userId: session.user.id,
-              },
+              clientId,
             },
             riskLevel: {
               in: ['HIGH', 'CRITICAL'],
@@ -72,12 +67,10 @@ export async function GET(request: Request) {
 
     const riskBreakdown = await prisma.observation.groupBy({
       by: ['riskLevel'],
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
             report: {
-              client: {
-                userId: session.user.id,
-              },
+              clientId,
             },
             status: {
               in: ['OPEN', 'IN_PROGRESS'],
@@ -95,12 +88,10 @@ export async function GET(request: Request) {
 
     const statusBreakdown = await prisma.observation.groupBy({
       by: ['status'],
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
             report: {
-              client: {
-                userId: session.user.id,
-              },
+              clientId,
             },
           }
         : undefined,
@@ -110,11 +101,9 @@ export async function GET(request: Request) {
     })
 
     const recentReports = await prisma.report.findMany({
-      where: session.user.role === 'CLIENT'
+      where: clientId
         ? {
-            client: {
-              userId: session.user.id,
-            },
+            clientId,
           }
         : undefined,
       take: 5,

@@ -5,32 +5,12 @@ import bcrypt from 'bcryptjs'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
 import { sendNotificationEmail } from '@/lib/email'
-import { ensureClientTableCompatibility, isMissingTableOrColumnError } from '@/lib/db-compat'
+import { createClientAccount, getClientAccountById, listClientAccounts } from '@/lib/client-records'
 
 export async function GET() {
   try {
     await requireAdmin()
-    await ensureClientTableCompatibility()
-    const clients = await prisma.client.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        _count: {
-          select: {
-            reports: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    const clients = await listClientAccounts()
     return NextResponse.json(clients)
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: error.message === 'Forbidden' ? 403 : 500 })
@@ -39,8 +19,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await requireAdmin()
-    await ensureClientTableCompatibility()
+    const session = await requireAdmin()
     const body = await request.json()
     const headerList = headers()
     const ip = headerList.get('x-forwarded-for') || 'unknown'
@@ -65,21 +44,25 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role: 'CLIENT',
         language: 'en',
-        client: {
-          create: {
-            companyName,
-            companyNameAr,
-            phone,
-            address,
-          },
-        },
-      },
-      include: {
-        client: true,
       },
     })
 
-    await logActivity(user.id, 'CLIENT_CREATED', 'client', user.client!.id, `Created client account for ${companyName}`, ip)
+    let clientId: string | null = null
+
+    try {
+      clientId = await createClientAccount({
+        userId: user.id,
+        companyName,
+        companyNameAr,
+        phone,
+        address,
+      })
+    } catch (error) {
+      await prisma.user.delete({ where: { id: user.id } }).catch(() => undefined)
+      throw error
+    }
+
+    await logActivity(session.user.id, 'CLIENT_CREATED', 'client', clientId, `Created client account for ${companyName}`, ip)
 
     await sendNotificationEmail({
       to: user.email,
@@ -90,15 +73,9 @@ export async function POST(request: Request) {
       console.error('Failed to send client welcome email:', error)
     })
 
-    return NextResponse.json(user, { status: 201 })
+    const client = await getClientAccountById(clientId)
+    return NextResponse.json(client, { status: 201 })
   } catch (error: any) {
-    if (isMissingTableOrColumnError(error)) {
-      return NextResponse.json(
-        { error: 'Client schema in the database is outdated. Please redeploy once and try again.' },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({ error: error.message }, { status: error.message === 'Forbidden' ? 403 : 500 })
   }
 }

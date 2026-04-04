@@ -4,25 +4,21 @@ import { requireAdmin } from '@/lib/auth'
 import bcrypt from 'bcryptjs'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
-import { ensureClientTableCompatibility, isMissingTableOrColumnError } from '@/lib/db-compat'
+import { deleteClientAccount, getClientAccountById, updateClientAccount } from '@/lib/client-records'
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin()
-    await ensureClientTableCompatibility()
+    const session = await requireAdmin()
     const body = await request.json()
     const headerList = headers()
     const ip = headerList.get('x-forwarded-for') || 'unknown'
 
     const { name, email, password, companyName, companyNameAr, phone, address } = body
 
-    const existingClient = await prisma.client.findUnique({
-      where: { id: params.id },
-      include: { user: true },
-    })
+    const existingClient = await getClientAccountById(params.id)
 
     if (!existingClient) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
@@ -41,13 +37,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 })
     }
 
-    const updateData: any = {
-      companyName,
-      companyNameAr,
-      phone,
-      address,
-    }
-
     const userUpdateData: any = {
       name,
       email,
@@ -57,28 +46,20 @@ export async function PUT(
       userUpdateData.password = await bcrypt.hash(password, 12)
     }
 
-    const updatedClient = await prisma.client.update({
-      where: { id: params.id },
-      data: {
-        ...updateData,
-        user: {
-          update: userUpdateData,
-        },
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-      },
+    await prisma.user.update({
+      where: { id: existingClient.userId },
+      data: userUpdateData,
+    })
+
+    await updateClientAccount(params.id, {
+      companyName,
+      companyNameAr,
+      phone,
+      address,
     })
 
     await logActivity(
-      existingClient.userId,
+      session.user.id,
       'CLIENT_UPDATED',
       'client',
       params.id,
@@ -86,15 +67,9 @@ export async function PUT(
       ip
     )
 
+    const updatedClient = await getClientAccountById(params.id)
     return NextResponse.json(updatedClient)
   } catch (error: any) {
-    if (isMissingTableOrColumnError(error)) {
-      return NextResponse.json(
-        { error: 'Client schema in the database is outdated. Please redeploy once and try again.' },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({ error: error.message }, { status: error.message === 'Forbidden' ? 403 : 500 })
   }
 }
@@ -104,25 +79,18 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await requireAdmin()
-    await ensureClientTableCompatibility()
+    const session = await requireAdmin()
     const headerList = headers()
     const ip = headerList.get('x-forwarded-for') || 'unknown'
 
-    const client = await prisma.client.findUnique({
-      where: { id: params.id },
-    })
+    const client = await getClientAccountById(params.id)
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
 
-    await prisma.client.delete({
-      where: { id: params.id },
-    })
-
     await logActivity(
-      client.userId,
+      session.user.id,
       'CLIENT_DELETED',
       'client',
       params.id,
@@ -130,15 +98,13 @@ export async function DELETE(
       ip
     )
 
+    await deleteClientAccount(params.id)
+    await prisma.user.delete({
+      where: { id: client.userId },
+    }).catch(() => undefined)
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    if (isMissingTableOrColumnError(error)) {
-      return NextResponse.json(
-        { error: 'Client schema in the database is outdated. Please redeploy once and try again.' },
-        { status: 500 }
-      )
-    }
-
     return NextResponse.json({ error: error.message }, { status: error.message === 'Forbidden' ? 403 : 500 })
   }
 }
