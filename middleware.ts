@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
-  // Get token using default cookie name (NextAuth handles secure prefix automatically)
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -11,16 +10,10 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // Public paths that don't require auth
-  const publicPaths = ['/', '/about', '/services', '/contact', '/login', '/api/auth', '/uploads', '/locales', '/_next', '/favicon', '/api/health']
-  const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))
-
-  // If public path, allow access
-  if (isPublicPath && !pathname.startsWith('/api/auth')) {
-    return NextResponse.next()
+  if (pathname === '/login' && token) {
+    return NextResponse.redirect(new URL(token.role === 'ADMIN' ? '/admin' : '/dashboard', request.url))
   }
 
-  // Dashboard routes require auth
   if (pathname.startsWith('/dashboard')) {
     if (!token) {
       const loginUrl = new URL('/login', request.url)
@@ -29,7 +22,6 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Admin routes require admin role
   if (pathname.startsWith('/admin')) {
     if (!token) {
       const loginUrl = new URL('/login', request.url)
@@ -41,26 +33,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect authenticated users from login page
-  if (pathname === '/login' && token) {
-    if (token.role === 'ADMIN') {
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
   return NextResponse.next()
 }
 
 export const config = {
   matcher: [
-    '/',
-    '/about/:path*',
-    '/services/:path*',
-    '/contact/:path*',
     '/login',
     '/dashboard/:path*',
     '/admin/:path*',
-    '/api/:path*',
   ],
 }

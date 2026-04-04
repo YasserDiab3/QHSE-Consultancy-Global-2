@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     const ip = headerList.get('x-forwarded-for') || 'unknown'
     const body = await request.json()
 
-    const { clientId, date, siteName, siteNameAr, category, consultantId, notes, notesAr } = body
+    const { clientId, date, siteName, siteNameAr, category, consultantId, notes, notesAr, status } = body
 
     if (!clientId || !date || !siteName || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -105,6 +105,7 @@ export async function POST(request: Request) {
         siteName,
         siteNameAr,
         category,
+        status: status || 'OPEN',
         consultantId: consultantId || undefined,
         notes,
         notesAr,

@@ -32,6 +32,18 @@ type Report = {
   consultant?: { name: string }
 }
 
+const createInitialFormData = () => ({
+  clientId: '',
+  date: '',
+  siteName: '',
+  siteNameAr: '',
+  category: 'SAFETY',
+  consultantId: '',
+  notes: '',
+  notesAr: '',
+  status: 'OPEN',
+})
+
 export default function AdminReports() {
   const { t, language } = useLanguage()
   const [reports, setReports] = useState<Report[]>([])
@@ -40,17 +52,12 @@ export default function AdminReports() {
   const [showForm, setShowForm] = useState(false)
   const [editingReport, setEditingReport] = useState<Report | null>(null)
   const [viewingReport, setViewingReport] = useState<Report | null>(null)
-  const [formData, setFormData] = useState({
-    clientId: '',
-    date: '',
-    siteName: '',
-    siteNameAr: '',
-    category: 'SAFETY',
-    consultantId: '',
-    notes: '',
-    notesAr: '',
-    status: 'OPEN',
-  })
+  const [formData, setFormData] = useState(createInitialFormData)
+
+  const resetForm = () => {
+    setEditingReport(null)
+    setFormData(createInitialFormData())
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -84,24 +91,18 @@ export default function AdminReports() {
         body: JSON.stringify(formData),
       })
 
-      if (res.ok) {
-        toast.success(editingReport ? t('admin.reportUpdated') : t('admin.reportCreated'))
-        setShowForm(false)
-        setEditingReport(null)
-        setFormData({
-          clientId: '',
-          date: '',
-          siteName: '',
-          siteNameAr: '',
-          category: 'SAFETY',
-          consultantId: '',
-          notes: '',
-          notesAr: '',
-          status: 'OPEN',
-        })
-        fetchData()
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        toast.error(data?.error || t('common.error'))
+        return
       }
-    } catch (error) {
+
+      toast.success(editingReport ? t('admin.reportUpdated') : t('admin.reportCreated'))
+      setShowForm(false)
+      resetForm()
+      fetchData()
+    } catch {
       toast.error(t('common.error'))
     }
   }
@@ -110,11 +111,16 @@ export default function AdminReports() {
     if (!confirm(t('admin.confirmDelete'))) return
     try {
       const res = await fetch(`/api/reports/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        toast.success(t('admin.deleted'))
-        fetchData()
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        toast.error(data?.error || t('common.error'))
+        return
       }
-    } catch (error) {
+
+      toast.success(t('admin.deleted'))
+      fetchData()
+    } catch {
       toast.error(t('common.error'))
     }
   }
@@ -140,7 +146,7 @@ export default function AdminReports() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">{t('admin.manageReports')}</h2>
-        <button onClick={() => { setShowForm(true); setEditingReport(null) }} className="btn-primary">
+        <button onClick={() => { resetForm(); setShowForm(true) }} className="btn-primary">
           <Plus className="w-4 h-4" />
           {t('admin.addReport')}
         </button>
@@ -152,9 +158,9 @@ export default function AdminReports() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingReport ? t('reports.viewReport') : t('admin.createReport')}
+                {editingReport ? t('common.edit') : t('admin.createReport')}
               </h3>
-              <button onClick={() => { setShowForm(false); setEditingReport(null) }}>
+              <button onClick={() => { setShowForm(false); resetForm() }}>
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -260,7 +266,7 @@ export default function AdminReports() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingReport(null) }}
+                  onClick={() => { setShowForm(false); resetForm() }}
                   className="btn-secondary"
                 >
                   {t('common.cancel')}
@@ -373,14 +379,18 @@ function ViewReportModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newObs, reportId: report.id }),
       })
-      if (res.ok) {
-        const obs = await res.json()
-        setObservations((prev) => [...prev, obs])
-        setNewObs({ title: '', titleAr: '', description: '', descriptionAr: '', riskLevel: 'LOW', status: 'OPEN' })
-        setShowObsForm(false)
-        toast.success(t('common.success'))
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        toast.error(data?.error || t('common.error'))
+        return
       }
-    } catch (error) {
+
+      setObservations((prev) => [...prev, data])
+      setNewObs({ title: '', titleAr: '', description: '', descriptionAr: '', riskLevel: 'LOW', status: 'OPEN' })
+      setShowObsForm(false)
+      toast.success(t('common.success'))
+    } catch {
       toast.error(t('common.error'))
     }
   }
@@ -389,11 +399,16 @@ function ViewReportModal({
     if (!confirm(t('admin.confirmDelete'))) return
     try {
       const res = await fetch(`/api/observations/${id}`, { method: 'DELETE' })
-      if (res.ok) {
-        setObservations((prev) => prev.filter((o) => o.id !== id))
-        toast.success(t('admin.deleted'))
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        toast.error(data?.error || t('common.error'))
+        return
       }
-    } catch (error) {
+
+      setObservations((prev) => prev.filter((o) => o.id !== id))
+      toast.success(t('admin.deleted'))
+    } catch {
       toast.error(t('common.error'))
     }
   }

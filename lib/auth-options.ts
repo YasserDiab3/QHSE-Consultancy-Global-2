@@ -3,6 +3,8 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
+const AUTH_SERVICE_UNAVAILABLE = 'AUTH_SERVICE_UNAVAILABLE'
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -37,35 +39,34 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required')
+          return null
         }
 
-        let user
         try {
-          user = await prisma.user.findUnique({
+          const user = await prisma.user.findUnique({
             where: { email: credentials.email },
           })
+
+          if (!user) {
+            return null
+          }
+
+          const isValid = await bcrypt.compare(credentials.password, user.password)
+
+          if (!isValid) {
+            return null
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            language: user.language,
+          }
         } catch (dbError: any) {
-          console.error('Database connection error:', dbError.message)
-          throw new Error('Database connection error. Please try again later.')
-        }
-
-        if (!user) {
-          throw new Error('Invalid email or password')
-        }
-
-        const isValid = await bcrypt.compare(credentials.password, user.password)
-
-        if (!isValid) {
-          throw new Error('Invalid email or password')
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          language: user.language,
+          console.error('Credentials authorization failed:', dbError?.message || dbError)
+          throw new Error(AUTH_SERVICE_UNAVAILABLE)
         }
       },
     }),
@@ -92,16 +93,21 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      if (url.startsWith(baseUrl)) return url
+      return `${baseUrl}/dashboard`
+    },
   },
   pages: {
     signIn: '/login',
-    error: '/login',
   },
   session: {
     strategy: 'jwt',
     maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 }
 
 const handler = NextAuth(authOptions)

@@ -1,26 +1,59 @@
 'use client'
 
 import { useLanguage } from '@/context'
-import { signIn } from 'next-auth/react'
-import { Suspense, useState, useEffect } from 'react'
+import { signIn, useSession } from 'next-auth/react'
+import { Suspense, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Shield, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react'
 
+const AUTH_SERVICE_UNAVAILABLE = 'AUTH_SERVICE_UNAVAILABLE'
+
 function LoginForm() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { status } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [shouldRedirect, setShouldRedirect] = useState(false)
 
-  // Handle redirect after successful login
-  useEffect(() => {
-    if (shouldRedirect) {
-      window.location.href = '/dashboard'
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const error = searchParams.get('error')
+
+  const getAuthErrorMessage = (code?: string | null) => {
+    if (code === 'CredentialsSignin') {
+      return language === 'ar' ? 'بيانات تسجيل الدخول غير صحيحة' : t('auth.invalidCredentials')
     }
-  }, [shouldRedirect])
+
+    if (code === AUTH_SERVICE_UNAVAILABLE) {
+      return language === 'ar'
+        ? 'خدمة تسجيل الدخول غير متاحة حاليا. حاول مرة أخرى بعد قليل.'
+        : t('auth.serviceUnavailable')
+    }
+
+    if (!code) return null
+
+    return language === 'ar'
+      ? 'تعذر تسجيل الدخول. تحقق من الإعدادات ثم حاول مرة أخرى.'
+      : 'Unable to sign in. Please check the configuration and try again.'
+  }
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace(callbackUrl)
+      router.refresh()
+    }
+  }, [callbackUrl, router, status])
+
+  useEffect(() => {
+    const message = getAuthErrorMessage(error)
+    if (message) {
+      toast.error(message)
+    }
+  }, [error, language])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,19 +64,29 @@ function LoginForm() {
         email,
         password,
         redirect: false,
+        callbackUrl,
       })
 
       if (result?.error) {
-        toast.error('Invalid email or password')
-        setLoading(false)
-      } else if (result?.ok) {
-        setShouldRedirect(true)
-      } else {
-        toast.error('Login failed')
-        setLoading(false)
+        toast.error(getAuthErrorMessage(result.error) ?? t('common.error'))
+        return
       }
-    } catch (error) {
-      toast.error('An unexpected error occurred')
+
+      if (result?.url) {
+        const targetUrl = result.url.startsWith('http')
+          ? new URL(result.url).pathname + new URL(result.url).search + new URL(result.url).hash
+          : result.url
+
+        router.replace(targetUrl)
+        router.refresh()
+        return
+      }
+
+      router.replace(callbackUrl)
+      router.refresh()
+    } catch {
+      toast.error(t('common.error'))
+    } finally {
       setLoading(false)
     }
   }
@@ -89,7 +132,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   className="input-field pl-10 pr-10"
-                  placeholder="••••••••"
+                  placeholder="........"
                   autoComplete="current-password"
                 />
                 <button
@@ -104,10 +147,10 @@ function LoginForm() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || status === 'loading'}
               className="btn-primary w-full"
             >
-              {loading ? (
+              {loading || status === 'loading' ? (
                 <><Loader2 className="w-5 h-5 animate-spin" />{t('auth.loggingIn')}</>
               ) : (
                 t('auth.loginButton')
@@ -118,7 +161,7 @@ function LoginForm() {
 
         <p className="text-center mt-6 text-sm text-gray-600">
           <Link href="/" className="text-primary-500 hover:text-primary-600 font-medium">
-            ← {t('common.back')}
+            {'<-'} {t('common.back')}
           </Link>
         </p>
       </div>
@@ -128,11 +171,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   )
