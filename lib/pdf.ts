@@ -54,7 +54,7 @@ async function loadLogoDataUrl() {
       }
     }
     image.onerror = () => reject(new Error('Failed to load logo asset'))
-    image.src = '/brand/qhsse-logo-stacked.svg'
+    image.src = '/brand/qhsse-logo-mark.svg'
   })
 }
 
@@ -70,7 +70,7 @@ export async function generateReportPDF(report: Report, t: (key: string) => stri
 
   try {
     const logoDataUrl = await loadLogoDataUrl()
-    doc.addImage(logoDataUrl, 'PNG', 14, 8, 34, 34)
+    doc.addImage(logoDataUrl, 'PNG', 14, 8, 26, 26)
   } catch (error) {
     console.error('Failed to load logo for PDF:', error)
   }
@@ -78,10 +78,10 @@ export async function generateReportPDF(report: Report, t: (key: string) => stri
   doc.setTextColor(139, 77, 0)
   doc.setFontSize(18)
   doc.setFont('helvetica', 'bold')
-  doc.text('QHSSE CONSULTANT', 54, 20)
+  doc.text('QHSSE CONSULTANT', 46, 18)
   doc.setFontSize(9)
   doc.setFont('helvetica', 'normal')
-  doc.text('SINCE 2022', 54, 28)
+  doc.text('SINCE 2022', 46, 26)
   doc.setTextColor(30, 64, 175)
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
@@ -91,7 +91,7 @@ export async function generateReportPDF(report: Report, t: (key: string) => stri
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  let y = 62
+  let y = 56
 
   doc.text(isArabic && report.siteNameAr ? report.siteNameAr : report.siteName, 14, y)
   doc.setFont('helvetica', 'normal')

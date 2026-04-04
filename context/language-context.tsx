@@ -1,78 +1,92 @@
 'use client'
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
 type Language = 'en' | 'ar'
 
 interface LanguageContextType {
   language: Language
-  setLanguage: (lang: Language) => void
+  setLanguage: (lang: Language) => Promise<void>
   t: (key: string) => string
   dir: 'ltr' | 'rtl'
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+const translationCache: Partial<Record<Language, Record<string, unknown>>> = {}
 
-function getNestedTranslation(obj: any, path: string): string {
-  return path.split('.').reduce((acc, part) => acc?.[part], obj) || path
+function getNestedTranslation(obj: Record<string, unknown>, path: string): string {
+  const value = path.split('.').reduce<unknown>((acc, part) => {
+    if (acc && typeof acc === 'object' && part in acc) {
+      return (acc as Record<string, unknown>)[part]
+    }
+
+    return undefined
+  }, obj)
+
+  return typeof value === 'string' ? value : path
 }
 
-let translations: Record<string, any> = {}
-let loadedLang: Language = 'en'
+async function loadTranslations(lang: Language) {
+  if (translationCache[lang]) {
+    return translationCache[lang]!
+  }
+
+  const response = await fetch(`/locales/${lang}.json`, { cache: 'no-store' })
+  if (!response.ok) {
+    throw new Error(`Failed to load ${lang} translations`)
+  }
+
+  const data = (await response.json()) as Record<string, unknown>
+  translationCache[lang] = data
+  return data
+}
+
+function applyLanguageAttributes(lang: Language) {
+  document.documentElement.lang = lang
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+}
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en')
-  const [, forceUpdate] = useState(0)
+  const [messages, setMessages] = useState<Record<string, unknown>>({})
 
   const setLanguage = useCallback(async (lang: Language) => {
+    const data = await loadTranslations(lang).catch(() => ({}))
+    setMessages(data)
     setLanguageState(lang)
-    loadedLang = lang
-    document.documentElement.lang = lang
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+    applyLanguageAttributes(lang)
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferred-language', lang)
     }
-    forceUpdate((n) => n + 1)
   }, [])
 
   useEffect(() => {
-    const loadTranslations = async () => {
-      const savedLang = (localStorage.getItem('preferred-language') || 'en') as Language
-      try {
-        const res = await fetch(`/locales/${savedLang}.json`)
-        translations = await res.json()
-      } catch {
-        translations = {}
-      }
-      setLanguageState(savedLang)
-      loadedLang = savedLang
-      document.documentElement.lang = savedLang
-      document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr'
+    const bootLanguage = async () => {
+      const savedLang =
+        typeof window !== 'undefined'
+          ? ((localStorage.getItem('preferred-language') || 'en') as Language)
+          : 'en'
+
+      await setLanguage(savedLang)
     }
-    loadTranslations()
-  }, [])
+
+    void bootLanguage()
+  }, [setLanguage])
 
   const t = useCallback(
-    (key: string) => {
-      const value = getNestedTranslation(translations, key)
-      return typeof value === 'string' ? value : key
-    },
-    [language]
+    (key: string) => getNestedTranslation(messages, key),
+    [messages]
   )
 
-  useEffect(() => {
-    if (translations[language]) {
-      // already loaded
-    }
-  }, [language])
+  const dir: 'ltr' | 'rtl' = language === 'ar' ? 'rtl' : 'ltr'
 
-  const dir = language === 'ar' ? 'rtl' : 'ltr'
-
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, t, dir }}>
-      {children}
-    </LanguageContext.Provider>
+  const value = useMemo(
+    () => ({ language, setLanguage, t, dir }),
+    [dir, language, setLanguage, t]
   )
+
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {
@@ -80,5 +94,6 @@ export function useLanguage() {
   if (!context) {
     throw new Error('useLanguage must be used within a LanguageProvider')
   }
+
   return context
 }

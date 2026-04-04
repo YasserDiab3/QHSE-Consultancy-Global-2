@@ -36,7 +36,7 @@ type Client = {
 }
 
 export default function AdminClients() {
-  const { t } = useLanguage()
+  const { t, language, dir } = useLanguage()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -52,6 +52,33 @@ export default function AdminClients() {
     address: '',
   })
   const [formData, setFormData] = useState(createInitialFormData)
+
+  const copy =
+    language === 'ar'
+      ? {
+          createDescription: 'أنشئ حساب البوابة وبيانات الشركة ووسائل التواصل للعميل من مكان واحد.',
+          editDescription: 'حدّث بيانات حساب العميل وملف الشركة من شاشة واحدة.',
+          portalAccount: 'حساب البوابة',
+          portalAccountHint: 'بيانات الدخول وبيانات التواصل الرئيسية للعميل.',
+          companyProfile: 'ملف الشركة',
+          companyProfileHint: 'هوية الشركة ومعلومات التواصل الأساسية.',
+          keepPassword: 'اترك الحقل فارغا للاحتفاظ بكلمة المرور الحالية',
+          tempPassword: 'أنشئ كلمة مرور مؤقتة للعميل',
+          createdHint: 'سيتم إنشاء العميل في قاعدة البيانات ويمكنه تسجيل الدخول مباشرة.',
+          updatedHint: 'سيتم حفظ التعديلات مباشرة في بوابة العميل.',
+        }
+      : {
+          createDescription: 'Create the portal account, company profile, and contact details for the client in one place.',
+          editDescription: 'Update the client account and company profile from a single screen.',
+          portalAccount: 'Portal Account',
+          portalAccountHint: 'Login credentials and the main client contact details.',
+          companyProfile: 'Company Profile',
+          companyProfileHint: 'Company identity and primary contact information.',
+          keepPassword: 'Leave empty to keep the current password',
+          tempPassword: 'Create a temporary password for the client',
+          createdHint: 'The client will be created in the database and can sign in immediately.',
+          updatedHint: 'Changes are saved immediately to the client portal.',
+        }
 
   const resetForm = () => {
     setEditingClient(null)
@@ -167,8 +194,8 @@ export default function AdminClients() {
                 </h3>
                 <p className="text-sm text-gray-500 mt-2">
                   {editingClient
-                    ? 'Update the client account and company details from one place.'
-                    : 'Create a portal account, company profile, and contact details for the client.'}
+                    ? copy.editDescription
+                    : copy.createDescription}
                 </p>
               </div>
               <button
@@ -188,8 +215,8 @@ export default function AdminClients() {
                     <User className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Portal Account</h4>
-                    <p className="text-sm text-gray-500">Login credentials and main client contact.</p>
+                    <h4 className="font-semibold text-gray-900">{copy.portalAccount}</h4>
+                    <p className="text-sm text-gray-500">{copy.portalAccountHint}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -228,7 +255,7 @@ export default function AdminClients() {
                         value={formData.password}
                         onChange={(e) => setFormData((f) => ({ ...f, password: e.target.value }))}
                         required={!editingClient}
-                        placeholder={editingClient ? 'Leave empty to keep current password' : 'Create a temporary password'}
+                        placeholder={editingClient ? copy.keepPassword : copy.tempPassword}
                         className="input-field ps-10"
                       />
                     </div>
@@ -242,8 +269,8 @@ export default function AdminClients() {
                     <Building2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">Company Profile</h4>
-                    <p className="text-sm text-gray-500">Company identity and primary contact information.</p>
+                    <h4 className="font-semibold text-gray-900">{copy.companyProfile}</h4>
+                    <p className="text-sm text-gray-500">{copy.companyProfileHint}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -299,8 +326,8 @@ export default function AdminClients() {
               <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
                 <p className="text-sm text-gray-500">
                   {editingClient
-                    ? 'Changes are saved immediately to the client portal.'
-                    : 'The client will be created in the database and can sign in immediately.'}
+                    ? copy.updatedHint
+                    : copy.createdHint}
                 </p>
                 <div className="flex items-center justify-end gap-3">
                   <button
@@ -316,7 +343,7 @@ export default function AdminClients() {
                     ) : (
                       <>
                         {t('common.save')}
-                        <ArrowRight className="w-4 h-4" />
+                        <ArrowRight className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
                       </>
                     )}
                   </button>

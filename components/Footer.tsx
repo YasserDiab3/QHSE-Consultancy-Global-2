@@ -15,9 +15,9 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <Link
               href="/"
-              className="mb-5 inline-flex items-center rounded-2xl border border-white/15 bg-white px-4 py-3 shadow-lg shadow-black/10"
+              className="mb-5 inline-flex items-center rounded-3xl border border-white/15 bg-white p-3 shadow-lg shadow-black/10"
             >
-              <BrandLogo variant="header" className="w-[220px]" />
+              <BrandLogo variant="mark" className="w-20" />
             </Link>
             <p className="mb-6 max-w-md text-gray-400">{t('home.heroSubtitle')}</p>
             <div className="flex items-center gap-4">

@@ -5,14 +5,15 @@ import { Globe } from 'lucide-react'
 
 export default function LanguageSwitcher() {
   const { language, setLanguage } = useLanguage()
+  const nextLanguage = language === 'en' ? 'ar' : 'en'
 
   return (
     <button
-      onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium transition-colors duration-200"
+      onClick={() => void setLanguage(nextLanguage)}
+      className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-200 hover:bg-gray-200"
       aria-label="Switch language"
     >
-      <Globe className="w-4 h-4" />
+      <Globe className="h-4 w-4" />
       <span>{language === 'en' ? 'العربية' : 'EN'}</span>
     </button>
   )

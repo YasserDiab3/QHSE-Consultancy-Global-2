@@ -2,17 +2,17 @@
 
 import { useLanguage } from '@/context'
 import { useSession } from 'next-auth/react'
-import { useEffect, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
-  FileText,
+  Activity,
   AlertTriangle,
+  BarChart3,
   CheckCircle2,
+  FileText,
+  MessageSquare,
   TrendingUp,
   Users,
-  Activity,
-  BarChart3,
-  MessageSquare,
 } from 'lucide-react'
 import Header from '@/components/Header'
 import AdminReports from './admin-reports'
@@ -31,7 +31,7 @@ type DashboardStats = {
 }
 
 export default function AdminDashboardClient() {
-  const { t, language } = useLanguage()
+  const { t, language, dir } = useLanguage()
   const { data: session } = useSession()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -55,50 +55,46 @@ export default function AdminDashboardClient() {
     fetchStats()
   }, [fetchStats])
 
-  const tabs = [
-    { id: 'overview' as const, label: t('dashboard.title'), icon: BarChart3 },
-    { id: 'reports' as const, label: t('admin.reports'), icon: FileText },
-    { id: 'clients' as const, label: t('admin.clients'), icon: Users },
-    { id: 'requests' as const, label: language === 'ar' ? 'طلبات التواصل' : 'Contact Requests', icon: MessageSquare },
-    { id: 'activity' as const, label: t('admin.activityLog'), icon: Activity },
-  ]
+  const tabs = useMemo(
+    () => [
+      { id: 'overview' as const, label: t('dashboard.title'), icon: BarChart3 },
+      { id: 'reports' as const, label: t('admin.reports'), icon: FileText },
+      { id: 'clients' as const, label: t('admin.clients'), icon: Users },
+      { id: 'requests' as const, label: language === 'ar' ? 'طلبات التواصل' : 'Contact Requests', icon: MessageSquare },
+      { id: 'activity' as const, label: t('admin.activityLog'), icon: Activity },
+    ],
+    [language, t]
+  )
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="pt-20 pb-12">
+      <main className="pb-12 pt-20">
         <div className="container-custom">
-          {/* Page Header */}
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{t('admin.title')}</h1>
-            <p className="text-gray-600 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{t('admin.title')}</h1>
+            <p className="mt-1 text-gray-600">
               {t('dashboard.welcome')}, {session?.user?.name}
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 mb-8 bg-white rounded-xl p-1 border border-gray-200 w-fit overflow-x-auto">
+          <div className="mb-8 flex w-fit items-center gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-primary-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
+                className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  activeTab === tab.id ? 'bg-primary-500 text-white' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                <tab.icon className="w-4 h-4" />
+                <tab.icon className="h-4 w-4" />
                 {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <OverviewTab stats={stats} loading={loading} t={t} />
-          )}
+          {activeTab === 'overview' && <OverviewTab stats={stats} loading={loading} t={t} dir={dir} />}
           {activeTab === 'reports' && <AdminReports />}
           {activeTab === 'clients' && <AdminClients />}
           {activeTab === 'requests' && <AdminContactRequests />}
@@ -113,11 +109,15 @@ function OverviewTab({
   stats,
   loading,
   t,
+  dir,
 }: {
   stats: DashboardStats | null
   loading: boolean
   t: (key: string) => string
+  dir: 'ltr' | 'rtl'
 }) {
+  const textAlign = dir === 'rtl' ? 'text-right' : 'text-left'
+
   const summaryCards = [
     {
       label: t('dashboard.totalReports'),
@@ -147,11 +147,11 @@ function OverviewTab({
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card, i) => (
           <div key={i} className="card animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-24 mb-4" />
-            <div className="h-8 bg-gray-200 rounded w-16" />
+            <div className="mb-4 h-4 w-24 rounded bg-gray-200" />
+            <div className="h-8 w-16 rounded bg-gray-200" />
           </div>
         ))}
       </div>
@@ -160,14 +160,13 @@ function OverviewTab({
 
   return (
     <div className="space-y-8">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         {summaryCards.map((card, i) => (
-          <div key={i} className="card hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
+          <div key={i} className="card transition-shadow hover:shadow-md">
+            <div className="mb-4 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-600">{card.label}</span>
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.color} flex items-center justify-center`}>
-                <card.icon className="w-5 h-5 text-white" />
+              <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${card.color}`}>
+                <card.icon className="h-5 w-5 text-white" />
               </div>
             </div>
             <div className="text-3xl font-bold text-gray-900">{card.value}</div>
@@ -175,11 +174,9 @@ function OverviewTab({
         ))}
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Risk Overview */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="card">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">{t('dashboard.riskOverview')}</h3>
+          <h3 className="mb-6 text-lg font-bold text-gray-900">{t('dashboard.riskOverview')}</h3>
           <div className="space-y-4">
             {stats?.riskBreakdown?.map((item) => {
               const colors: Record<string, string> = {
@@ -193,13 +190,13 @@ function OverviewTab({
 
               return (
                 <div key={item.riskLevel}>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="mb-1 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
                       {t(`riskLevels.${item.riskLevel.toLowerCase()}`)}
                     </span>
                     <span className="text-sm text-gray-500">{item._count.riskLevel}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="h-2 w-full rounded-full bg-gray-200">
                     <div
                       className={`h-2 rounded-full ${colors[item.riskLevel] || 'bg-gray-500'}`}
                       style={{ width: `${percentage}%` }}
@@ -211,9 +208,8 @@ function OverviewTab({
           </div>
         </div>
 
-        {/* Status Distribution */}
         <div className="card">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">{t('dashboard.statusDistribution')}</h3>
+          <h3 className="mb-6 text-lg font-bold text-gray-900">{t('dashboard.statusDistribution')}</h3>
           <div className="space-y-4">
             {stats?.statusBreakdown?.map((item) => {
               const colors: Record<string, string> = {
@@ -227,13 +223,13 @@ function OverviewTab({
 
               return (
                 <div key={item.status}>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="mb-1 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">
                       {t(`statuses.${item.status.toLowerCase()}`)}
                     </span>
                     <span className="text-sm text-gray-500">{item._count.status}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="h-2 w-full rounded-full bg-gray-200">
                     <div
                       className={`h-2 rounded-full ${colors[item.status] || 'bg-gray-500'}`}
                       style={{ width: `${percentage}%` }}
@@ -246,11 +242,10 @@ function OverviewTab({
         </div>
       </div>
 
-      {/* Recent Reports */}
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h3 className="text-lg font-bold text-gray-900">{t('dashboard.recentReports')}</h3>
-          <Link href="/admin" className="text-sm text-primary-500 hover:text-primary-600 font-medium">
+          <Link href="/admin" className="text-sm font-medium text-primary-500 hover:text-primary-600">
             {t('dashboard.viewAll')}
           </Link>
         </div>
@@ -258,31 +253,43 @@ function OverviewTab({
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">{t('reports.siteName')}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">{t('reports.date')}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">{t('reports.category')}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">{t('reports.status')}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">{t('reports.observations')}</th>
+                <th className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-500`}>{t('reports.siteName')}</th>
+                <th className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-500`}>{t('reports.date')}</th>
+                <th className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-500`}>{t('reports.category')}</th>
+                <th className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-500`}>{t('reports.status')}</th>
+                <th className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-500`}>{t('reports.observations')}</th>
               </tr>
             </thead>
             <tbody>
               {stats?.recentReports?.map((report: any) => (
                 <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 text-sm font-medium text-gray-900">{report.siteName}</td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className={`${textAlign} px-4 py-3 text-sm font-medium text-gray-900`}>{report.siteName}</td>
+                  <td className={`${textAlign} px-4 py-3 text-sm text-gray-600`}>
                     {new Date(report.date).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className={`badge ${report.category.toLowerCase().includes('safety') ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
-                      {report.category}
+                  <td className={`${textAlign} px-4 py-3 text-sm`}>
+                    <span
+                      className={`badge ${
+                        String(report.category).toLowerCase().includes('safety')
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {t(`categories.${String(report.category).toLowerCase().replace(/\s+/g, '')}`)}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm">
-                    <span className={`badge ${report.status === 'CLOSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}`}>
-                      {report.status}
+                  <td className={`${textAlign} px-4 py-3 text-sm`}>
+                    <span
+                      className={`badge ${
+                        report.status === 'CLOSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {t(`statuses.${String(report.status).toLowerCase()}`)}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">{report._count?.observations || 0}</td>
+                  <td className={`${textAlign} px-4 py-3 text-sm text-gray-600`}>
+                    {report._count?.observations || 0}
+                  </td>
                 </tr>
               ))}
             </tbody>
