@@ -1,0 +1,71 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="44" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="leafLime" x1="42" y1="28" x2="208" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A4DE02"/>
+      <stop offset="1" stop-color="#3E9800"/>
+    </linearGradient>
+    <linearGradient id="trunkBrown" x1="128" y1="98" x2="128" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9D5A00"/>
+      <stop offset="1" stop-color="#6B3900"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M124 102C102 135 100 168 109 189C114 201 106 216 81 232C107 228 125 219 136 207C147 219 165 228 191 232C166 216 158 201 163 189C172 168 170 135 148 102C139 113 130 119 124 119C118 119 109 113 124 102Z" fill="url(#trunkBrown)"/>
+  <circle cx="128" cy="96" r="18" fill="#8B4D00"/>
+
+  <g transform="translate(58 74) rotate(-30)">
+    <ellipse cx="0" cy="0" rx="26" ry="31" fill="#97D700"/>
+    <path d="M-6 18C3 6 13 -7 17 -15" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(92 48) rotate(-14)">
+    <ellipse cx="0" cy="0" rx="17" ry="21" fill="#3E9800"/>
+  </g>
+  <g transform="translate(128 36) rotate(8)">
+    <ellipse cx="0" cy="0" rx="21" ry="26" fill="url(#leafLime)"/>
+    <path d="M-3 16C4 4 11 -8 14 -16" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(166 48) rotate(14)">
+    <ellipse cx="0" cy="0" rx="18" ry="22" fill="#58AB00"/>
+  </g>
+  <g transform="translate(196 77) rotate(28)">
+    <ellipse cx="0" cy="0" rx="22" ry="28" fill="url(#leafLime)"/>
+    <path d="M-3 18C6 8 14 -3 18 -14" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(86 82) rotate(-8)">
+    <ellipse cx="0" cy="0" rx="32" ry="38" fill="#49A300"/>
+    <path d="M-5 25C8 10 18 -3 22 -17" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(152 88) rotate(8)">
+    <ellipse cx="0" cy="0" rx="18" ry="24" fill="#8ACE00"/>
+    <path d="M-3 16C1 5 5 -6 5 -16" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(190 118) rotate(18)">
+    <ellipse cx="0" cy="0" rx="24" ry="30" fill="#97D700"/>
+    <path d="M-4 19C5 7 13 -3 18 -15" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(60 128) rotate(-12)">
+    <ellipse cx="0" cy="0" rx="20" ry="24" fill="#49A300"/>
+    <path d="M-14 4C-2 3 10 4 18 7" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(175 165) rotate(20)">
+    <ellipse cx="0" cy="0" rx="20" ry="24" fill="#A4DE02"/>
+    <path d="M-2 16C4 7 10 -3 14 -13" stroke="white" stroke-width="3.1" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(105 183) rotate(-18)">
+    <ellipse cx="0" cy="0" rx="12" ry="16" fill="#A4DE02"/>
+    <path d="M-6 6C0 5 7 3 12 1" stroke="white" stroke-width="2.3" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(74 162) rotate(-18)">
+    <ellipse cx="0" cy="0" rx="16" ry="20" fill="#4AA500"/>
+    <path d="M-2 13C4 5 10 -4 13 -12" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+  </g>
+
+  <ellipse cx="54" cy="45" rx="12" ry="15" fill="#49A300"/>
+  <ellipse cx="94" cy="22" rx="9" ry="11" transform="rotate(-24 94 22)" fill="#7AC700"/>
+  <ellipse cx="170" cy="22" rx="12" ry="15" fill="#3E9800"/>
+  <ellipse cx="214" cy="60" rx="10" ry="14" transform="rotate(20 214 60)" fill="#3E9800"/>
+  <ellipse cx="182" cy="118" rx="11" ry="16" transform="rotate(42 182 118)" fill="#4AA500"/>
+  <ellipse cx="117" cy="132" rx="17" ry="22" transform="rotate(-18 117 132)" fill="#4AA500"/>
+  <path d="M105 154C114 145 122 134 127 119" stroke="white" stroke-width="3.3" stroke-linecap="round"/>
+</svg>

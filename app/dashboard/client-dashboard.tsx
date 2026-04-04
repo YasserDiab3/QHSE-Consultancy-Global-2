@@ -97,11 +97,11 @@ export default function ClientDashboard() {
     fetchReports()
   }, [fetchReports])
 
-  const handleDownloadPDF = (report: Report) => {
+  const handleDownloadPDF = async (report: Report) => {
     try {
-      generateReportPDF(report, t, language)
+      await generateReportPDF(report, t, language)
       toast.success('PDF downloaded')
-    } catch (error) {
+    } catch {
       toast.error('Failed to generate PDF')
     }
   }
@@ -270,9 +270,9 @@ export default function ClientDashboard() {
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation()
-                              handleDownloadPDF(report)
+                              await handleDownloadPDF(report)
                             }}
                             className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
                             title={t('reports.downloadPDF')}
@@ -315,7 +315,7 @@ function ReportDetail({
 }: {
   report: Report
   onBack: () => void
-  onDownloadPDF: (report: Report) => void
+  onDownloadPDF: (report: Report) => Promise<void>
   t: (key: string) => string
   language: string
   dir: string
@@ -350,7 +350,7 @@ function ReportDetail({
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => onDownloadPDF(report)}
+              onClick={() => void onDownloadPDF(report)}
               className="btn-secondary px-4 py-2 text-sm"
             >
               <Download className="w-4 h-4" />

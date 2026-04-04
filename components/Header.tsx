@@ -38,11 +38,20 @@ export default function Header() {
       <div className="container-custom">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link
+            href="/"
+            className={`group flex items-center rounded-2xl border px-3 py-2 shadow-lg shadow-slate-900/5 transition-all duration-300 ${
+              scrolled
+                ? 'border-slate-200/80 bg-white/96'
+                : 'border-white/70 bg-white/92 backdrop-blur-sm'
+            }`}
+          >
             <BrandLogo
-              className="gap-3"
-              textClassName={scrolled ? 'text-primary-700' : 'text-white'}
-              subtitleClassName={scrolled ? 'text-primary-500/80' : 'text-white/70'}
+              variant="header"
+              priority
+              className={`transition-all duration-300 ${
+                scrolled ? 'w-[142px] md:w-[178px]' : 'w-[154px] md:w-[190px]'
+              }`}
             />
           </Link>
 

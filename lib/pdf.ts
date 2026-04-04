@@ -32,25 +32,66 @@ type Observation = {
   images: any[]
 }
 
-export function generateReportPDF(report: Report, t: (key: string) => string, language: string) {
+async function loadLogoDataUrl() {
+  return new Promise<string>((resolve, reject) => {
+    const image = new Image()
+    image.crossOrigin = 'anonymous'
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = image.naturalWidth
+        canvas.height = image.naturalHeight
+
+        const context = canvas.getContext('2d')
+        if (!context) {
+          throw new Error('Canvas context unavailable')
+        }
+
+        context.drawImage(image, 0, 0)
+        resolve(canvas.toDataURL('image/png'))
+      } catch (error) {
+        reject(error)
+      }
+    }
+    image.onerror = () => reject(new Error('Failed to load logo asset'))
+    image.src = '/brand/qhsse-logo-stacked.svg'
+  })
+}
+
+export async function generateReportPDF(report: Report, t: (key: string) => string, language: string) {
   const doc = new jsPDF()
   const isArabic = language === 'ar'
 
   // Header
-  doc.setFillColor(30, 64, 175)
-  doc.rect(0, 0, 210, 40, 'F')
+  doc.setFillColor(248, 250, 252)
+  doc.rect(0, 0, 210, 48, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.line(14, 46, 196, 46)
 
-  doc.setTextColor(255, 255, 255)
-  doc.setFontSize(22)
-  doc.text('QHSSE Consultant', 105, 18, { align: 'center' })
-  doc.setFontSize(10)
-  doc.text('Visit Report', 105, 28, { align: 'center' })
+  try {
+    const logoDataUrl = await loadLogoDataUrl()
+    doc.addImage(logoDataUrl, 'PNG', 14, 8, 34, 34)
+  } catch (error) {
+    console.error('Failed to load logo for PDF:', error)
+  }
+
+  doc.setTextColor(139, 77, 0)
+  doc.setFontSize(18)
+  doc.setFont('helvetica', 'bold')
+  doc.text('QHSSE CONSULTANT', 54, 20)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text('SINCE 2022', 54, 28)
+  doc.setTextColor(30, 64, 175)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(isArabic ? 'Visit Report / تقرير زيارة' : 'Visit Report', 196, 22, { align: 'right' })
 
   // Report Info
   doc.setTextColor(0, 0, 0)
   doc.setFontSize(12)
   doc.setFont('helvetica', 'bold')
-  let y = 55
+  let y = 62
 
   doc.text(isArabic && report.siteNameAr ? report.siteNameAr : report.siteName, 14, y)
   doc.setFont('helvetica', 'normal')
