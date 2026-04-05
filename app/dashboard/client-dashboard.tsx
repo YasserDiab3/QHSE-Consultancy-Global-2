@@ -26,6 +26,7 @@ import { getRiskLevelColor, getStatusColor, getCategoryColor } from '@/lib/color
 import Header from '@/components/Header'
 import { generateReportPDF } from '@/lib/pdf'
 import toast from 'react-hot-toast'
+import DashboardSignOutButton from '@/components/DashboardSignOutButton'
 
 type Report = {
   id: string
@@ -122,7 +123,7 @@ export default function ClientDashboard() {
       <main className="pt-20 pb-12">
         <div className="container-custom">
           {/* Page Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                 {t('reports.title')}
@@ -130,6 +131,7 @@ export default function ClientDashboard() {
               <p className="text-gray-600 mt-1">{t('reports.subtitle')}</p>
             </div>
             <div className="flex items-center gap-3">
+              <DashboardSignOutButton />
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="btn-secondary px-4 py-2"

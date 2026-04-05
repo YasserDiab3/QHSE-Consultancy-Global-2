@@ -21,6 +21,7 @@ import AdminActivityLog from './admin-activity-log'
 import AdminContactRequests from './admin-contact-requests'
 import AdminJobs from './admin-jobs'
 import toast from 'react-hot-toast'
+import DashboardSignOutButton from '@/components/DashboardSignOutButton'
 
 type DashboardStats = {
   totalReports: number
@@ -134,11 +135,14 @@ export default function AdminDashboardClient() {
       <main className="pb-12 pt-20">
         <div className="container-custom">
           <div ref={contentAnchorRef} />
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{t('admin.title')}</h1>
-            <p className="mt-1 text-gray-600">
-              {t('dashboard.welcome')}, {session?.user?.name}
-            </p>
+          <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">{t('admin.title')}</h1>
+              <p className="mt-1 text-gray-600">
+                {t('dashboard.welcome')}, {session?.user?.name}
+              </p>
+            </div>
+            <DashboardSignOutButton />
           </div>
 
           <div className="mb-8 flex w-fit items-center gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-1">
