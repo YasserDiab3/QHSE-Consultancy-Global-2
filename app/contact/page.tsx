@@ -3,9 +3,10 @@
 import { useLanguage } from '@/context'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { CONTACT_INFO } from '@/lib/contact-info'
 import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Mail, Phone, MapPin, Send, Loader2, Briefcase } from 'lucide-react'
+import { Mail, Phone, MapPin, Send, Loader2, Briefcase, MessageCircle } from 'lucide-react'
 
 export default function ContactPage() {
   const { t, language } = useLanguage()
@@ -210,7 +211,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{t('contact.address')}</p>
-                      <p className="text-gray-600">Business District, City</p>
+                      <p className="text-gray-600">{CONTACT_INFO.address}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -219,7 +220,9 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{t('contact.phoneLabel')}</p>
-                      <p className="text-gray-600">+971 XX XXX XXXX</p>
+                      <a href={CONTACT_INFO.phoneUrl} className="text-gray-600 transition-colors hover:text-primary-600">
+                        {CONTACT_INFO.phone}
+                      </a>
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
@@ -228,7 +231,28 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{t('contact.emailLabel')}</p>
-                      <p className="text-gray-600">info@qhsseconsultant.com</p>
+                      <a
+                        href={CONTACT_INFO.emailUrl}
+                        className="break-all text-gray-600 transition-colors hover:text-primary-600"
+                      >
+                        {CONTACT_INFO.email}
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-50">
+                      <MessageCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">WhatsApp</p>
+                      <a
+                        href={CONTACT_INFO.whatsappUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-600 transition-colors hover:text-green-600"
+                      >
+                        {CONTACT_INFO.whatsapp}
+                      </a>
                     </div>
                   </div>
                 </div>

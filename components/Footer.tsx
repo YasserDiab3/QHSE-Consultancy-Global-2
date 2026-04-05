@@ -2,7 +2,8 @@
 
 import { useLanguage } from '@/context'
 import Link from 'next/link'
-import { Linkedin, Mail, MapPin, Phone, Twitter } from 'lucide-react'
+import { CONTACT_INFO } from '@/lib/contact-info'
+import { Linkedin, Mail, MapPin, MessageCircle, Phone } from 'lucide-react'
 import BrandLogo from './BrandLogo'
 
 export default function Footer() {
@@ -22,16 +23,22 @@ export default function Footer() {
             <p className="mb-6 max-w-md text-gray-400">{t('home.heroSubtitle')}</p>
             <div className="flex items-center gap-4">
               <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                href={CONTACT_INFO.linkedin}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-[#0A66C2] hover:text-white"
               >
                 <Linkedin className="h-5 w-5" />
               </a>
               <a
-                href="#"
-                className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-white/20"
+                href={CONTACT_INFO.whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="WhatsApp"
+                className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 transition-colors hover:bg-[#25D366] hover:text-white"
               >
-                <Twitter className="h-5 w-5" />
+                <MessageCircle className="h-5 w-5" />
               </a>
             </div>
           </div>
@@ -70,16 +77,20 @@ export default function Footer() {
                 <span className="text-gray-400">
                   {t('contact.address')}
                   <br />
-                  Business District, City
+                  {CONTACT_INFO.address}
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="h-5 w-5 flex-shrink-0 text-accent-400" />
-                <span className="text-gray-400">+971 XX XXX XXXX</span>
+                <a href={CONTACT_INFO.phoneUrl} className="text-gray-400 transition-colors hover:text-white">
+                  {CONTACT_INFO.phone}
+                </a>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="h-5 w-5 flex-shrink-0 text-accent-400" />
-                <span className="text-gray-400">info@qhsseconsultant.com</span>
+                <a href={CONTACT_INFO.emailUrl} className="break-all text-gray-400 transition-colors hover:text-white">
+                  {CONTACT_INFO.email}
+                </a>
               </li>
             </ul>
           </div>
