@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
+import { createObservationRecord } from '@/lib/observation-records'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function POST(request: Request) {
   try {
@@ -21,18 +24,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const observation = await prisma.observation.create({
-      data: {
-        reportId,
-        title,
-        titleAr,
-        description,
-        descriptionAr,
-        riskLevel,
-        status: status || 'OPEN',
-        sortOrder: sortOrder || 0,
-      },
+    const observationId = await createObservationRecord({
+      reportId,
+      title,
+      titleAr,
+      description,
+      descriptionAr,
+      riskLevel,
+      status: status || 'OPEN',
+      sortOrder: sortOrder || 0,
     })
+
+    const observation = {
+      id: observationId,
+      reportId,
+      title,
+      titleAr,
+      description,
+      descriptionAr,
+      riskLevel,
+      status: status || 'OPEN',
+      sortOrder: sortOrder || 0,
+      images: [],
+    }
 
     await logActivity(
       session.user.id,

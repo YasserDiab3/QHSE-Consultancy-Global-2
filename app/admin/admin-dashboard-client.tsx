@@ -18,6 +18,7 @@ import AdminReports from './admin-reports'
 import AdminClients from './admin-clients'
 import AdminActivityLog from './admin-activity-log'
 import AdminContactRequests from './admin-contact-requests'
+import toast from 'react-hot-toast'
 
 type DashboardStats = {
   totalReports: number
@@ -60,75 +61,22 @@ export default function AdminDashboardClient() {
   const fetchStats = useCallback(async () => {
     setLoading(true)
     try {
-      const [reportsRes, clientsRes, requestsRes] = await Promise.all([
-        fetch('/api/reports', { cache: 'no-store' }),
-        fetch('/api/clients', { cache: 'no-store' }),
-        fetch('/api/contact', { cache: 'no-store' }),
-      ])
+      const res = await fetch('/api/dashboard', { cache: 'no-store' })
+      const data = await res.json().catch(() => null)
 
-      const reports: any[] = reportsRes.ok ? await reportsRes.json() : []
-      const clients: any[] = clientsRes.ok ? await clientsRes.json() : []
-      const requests: any[] = requestsRes.ok ? await requestsRes.json() : []
+      if (!res.ok || !data) {
+        throw new Error(data?.error || 'Failed to load dashboard stats')
+      }
 
-      const observations: any[] = reports.flatMap((report: any) => report.observations || [])
-
-      const riskMap = observations
-        .filter((observation: any) => ['OPEN', 'IN_PROGRESS'].includes(observation.status))
-        .reduce((acc: Record<string, number>, observation: any) => {
-          acc[observation.riskLevel] = (acc[observation.riskLevel] ?? 0) + 1
-          return acc
-        }, {} as Record<string, number>)
-
-      const statusMap = reports.reduce((acc: Record<string, number>, report: any) => {
-        acc[report.status] = (acc[report.status] ?? 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-
-      const requestStatusMap = requests.reduce((acc: Record<string, number>, request: any) => {
-        acc[request.status] = (acc[request.status] ?? 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-
-      setStats({
-        totalReports: reports.length,
-        openObservations: observations.filter((observation: any) => observation.status === 'OPEN').length,
-        closedReports: reports.filter((report: any) => report.status === 'CLOSED').length,
-        highRiskItems: observations.filter(
-          (observation: any) =>
-            ['HIGH', 'CRITICAL'].includes(observation.riskLevel) &&
-            ['OPEN', 'IN_PROGRESS'].includes(observation.status)
-        ).length,
-        totalClients: clients.length,
-        totalRequests: requests.length,
-        riskBreakdown: Object.entries(riskMap).map(([riskLevel, count]) => ({
-          riskLevel,
-          _count: { riskLevel: count },
-        })),
-        statusBreakdown: Object.entries(statusMap).map(([status, count]) => ({
-          status,
-          _count: { status: count },
-        })),
-        requestStatusBreakdown: Object.entries(requestStatusMap).map(([status, count]) => ({
-          status,
-          _count: { status: count },
-        })),
-        recentReports: reports
-          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          .slice(0, 5)
-          .map((report: any) => ({
-            ...report,
-            _count: {
-              observations: report.observations?.length || 0,
-            },
-          })),
-      })
+      setStats(data)
     } catch (error) {
       console.error('Failed to fetch stats:', error)
       setStats(null)
+      toast.error(language === 'ar' ? 'تعذر تحميل بيانات لوحة التحكم' : 'Failed to load dashboard data')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [language])
 
   useEffect(() => {
     void fetchStats()

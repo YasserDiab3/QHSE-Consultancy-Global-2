@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { getClientIdByUserId, listClientAccounts } from '@/lib/client-records'
 import { listReportRecords } from '@/lib/report-records'
+import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 function isMissingContactRequestTable(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
@@ -25,47 +28,31 @@ export async function GET() {
       clientId: clientId ?? undefined,
     })
 
-    const reportIds = reports.map((report) => report.id)
-    const scopedObservationFilter =
-      reportIds.length > 0
-        ? { reportId: { in: reportIds } }
-        : clientId
-          ? { reportId: '__none__' }
-          : {}
+    const observations = reports.flatMap((report) => report.observations ?? [])
 
-    const openObservations = await prisma.observation.count({
-      where: {
-        ...scopedObservationFilter,
-        status: 'OPEN',
-      },
-    })
+    const openObservations = observations.filter((observation) => observation.status === 'OPEN').length
 
     const closedReports = reports.filter((report) => report.status === 'CLOSED').length
 
-    const highRiskItems = await prisma.observation.count({
-      where: {
-        ...scopedObservationFilter,
-        riskLevel: {
-          in: ['HIGH', 'CRITICAL'],
-        },
-        status: {
-          in: ['OPEN', 'IN_PROGRESS'],
-        },
-      },
-    })
+    const highRiskItems = observations.filter(
+      (observation) =>
+        ['HIGH', 'CRITICAL'].includes(observation.riskLevel) &&
+        ['OPEN', 'IN_PROGRESS'].includes(observation.status)
+    ).length
 
-    const riskBreakdown = await prisma.observation.groupBy({
-      by: ['riskLevel'],
-      where: {
-        ...scopedObservationFilter,
-        status: {
-          in: ['OPEN', 'IN_PROGRESS'],
-        },
-      },
+    const riskMap = observations
+      .filter((observation) => ['OPEN', 'IN_PROGRESS'].includes(observation.status))
+      .reduce<Record<string, number>>((acc, observation) => {
+        acc[observation.riskLevel] = (acc[observation.riskLevel] ?? 0) + 1
+        return acc
+      }, {})
+
+    const riskBreakdown = Object.entries(riskMap).map(([riskLevel, count]) => ({
+      riskLevel,
       _count: {
-        riskLevel: true,
+        riskLevel: count,
       },
-    })
+    }))
 
     const reportStatusMap = reports.reduce<Record<string, number>>((acc, report) => {
       acc[report.status] = (acc[report.status] ?? 0) + 1
@@ -109,18 +96,25 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({
-      totalReports: reports.length,
-      openObservations,
-      closedReports,
-      highRiskItems,
-      totalClients,
-      totalRequests,
-      riskBreakdown,
-      statusBreakdown,
-      requestStatusBreakdown,
-      recentReports,
-    })
+    return NextResponse.json(
+      {
+        totalReports: reports.length,
+        openObservations,
+        closedReports,
+        highRiskItems,
+        totalClients,
+        totalRequests,
+        riskBreakdown,
+        statusBreakdown,
+        requestStatusBreakdown,
+        recentReports,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        },
+      }
+    )
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }

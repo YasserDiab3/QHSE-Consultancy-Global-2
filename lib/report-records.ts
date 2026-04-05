@@ -23,10 +23,34 @@ type RawReportRow = {
   consultantName: string | null
 }
 
+type RawObservationRow = {
+  id: string
+  reportId: string
+  title: string
+  titleAr: string | null
+  description: string | null
+  descriptionAr: string | null
+  riskLevel: string
+  status: string
+  sortOrder: number | null
+}
+
+type RawImageRow = {
+  id: string
+  observationId: string
+  type: string
+  url: string
+  originalName: string | null
+  mimeType: string | null
+  size: number | null
+}
+
 type ReportSchemaInfo = {
   reportTable: string
   clientTable: string
   userTable: string
+  observationTable: string | null
+  imageTable: string | null
   report: {
     id: string
     clientId: string
@@ -50,6 +74,26 @@ type ReportSchemaInfo = {
     id: string
     email: string | null
     name: string | null
+  }
+  observation: {
+    id: string | null
+    reportId: string | null
+    title: string | null
+    titleAr: string | null
+    description: string | null
+    descriptionAr: string | null
+    riskLevel: string | null
+    status: string | null
+    sortOrder: string | null
+  }
+  image: {
+    id: string | null
+    observationId: string | null
+    type: string | null
+    url: string | null
+    originalName: string | null
+    mimeType: string | null
+    size: string | null
   }
 }
 
@@ -152,12 +196,17 @@ async function loadSchemaInfo(): Promise<ReportSchemaInfo> {
     SELECT table_name, column_name
     FROM information_schema.columns
     WHERE table_schema = 'public'
-      AND lower(table_name) IN (${Prisma.join(['report', 'client', 'user'])})
+      AND lower(table_name) IN (${Prisma.join(['report', 'client', 'user', 'observation', 'image'])})
   `)
 
   const reportTable = resolveTableName(rows, ['Report', 'report'], 'Report')
   const clientTable = resolveTableName(rows, ['Client', 'client'], 'Client')
   const userTable = resolveTableName(rows, ['User', 'user'], 'User')
+  const observationTable =
+    rows.find((entry) => normalizeIdentifier(entry.table_name) === normalizeIdentifier('Observation'))?.table_name ??
+    null
+  const imageTable =
+    rows.find((entry) => normalizeIdentifier(entry.table_name) === normalizeIdentifier('Image'))?.table_name ?? null
 
   const getColumnsForTable = (tableName: string) =>
     rows.filter((entry) => entry.table_name === tableName).map((entry) => entry.column_name)
@@ -165,11 +214,15 @@ async function loadSchemaInfo(): Promise<ReportSchemaInfo> {
   const reportColumns = getColumnsForTable(reportTable)
   const clientColumns = getColumnsForTable(clientTable)
   const userColumns = getColumnsForTable(userTable)
+  const observationColumns = observationTable ? getColumnsForTable(observationTable) : []
+  const imageColumns = imageTable ? getColumnsForTable(imageTable) : []
 
   return {
     reportTable,
     clientTable,
     userTable,
+    observationTable,
+    imageTable,
     report: {
       id: resolveRequiredColumn(reportColumns, ['id'], 'Report id'),
       clientId: resolveRequiredColumn(reportColumns, ['clientId', 'client_id', 'clientid'], 'Report client reference'),
@@ -194,6 +247,26 @@ async function loadSchemaInfo(): Promise<ReportSchemaInfo> {
       email: resolveOptionalColumn(userColumns, ['email']),
       name: resolveOptionalColumn(userColumns, ['name']),
     },
+    observation: {
+      id: resolveOptionalColumn(observationColumns, ['id']),
+      reportId: resolveOptionalColumn(observationColumns, ['reportId', 'report_id', 'reportid']),
+      title: resolveOptionalColumn(observationColumns, ['title']),
+      titleAr: resolveOptionalColumn(observationColumns, ['titleAr', 'title_ar', 'titlear']),
+      description: resolveOptionalColumn(observationColumns, ['description']),
+      descriptionAr: resolveOptionalColumn(observationColumns, ['descriptionAr', 'description_ar', 'descriptionar']),
+      riskLevel: resolveOptionalColumn(observationColumns, ['riskLevel', 'risk_level', 'risklevel']),
+      status: resolveOptionalColumn(observationColumns, ['status']),
+      sortOrder: resolveOptionalColumn(observationColumns, ['sortOrder', 'sort_order', 'sortorder']),
+    },
+    image: {
+      id: resolveOptionalColumn(imageColumns, ['id']),
+      observationId: resolveOptionalColumn(imageColumns, ['observationId', 'observation_id', 'observationid']),
+      type: resolveOptionalColumn(imageColumns, ['type']),
+      url: resolveOptionalColumn(imageColumns, ['url']),
+      originalName: resolveOptionalColumn(imageColumns, ['originalName', 'original_name', 'originalname']),
+      mimeType: resolveOptionalColumn(imageColumns, ['mimeType', 'mime_type', 'mimetype']),
+      size: resolveOptionalColumn(imageColumns, ['size']),
+    },
   }
 }
 
@@ -213,25 +286,91 @@ async function loadObservations(reportIds: string[]) {
     return new Map<string, any[]>()
   }
 
+  const schema = await getSchemaInfo()
+  if (
+    !schema.observationTable ||
+    !schema.observation.id ||
+    !schema.observation.reportId ||
+    !schema.observation.title ||
+    !schema.observation.riskLevel
+  ) {
+    return new Map<string, any[]>()
+  }
+
   try {
-    const observations = await prisma.observation.findMany({
-      where: {
-        reportId: {
-          in: reportIds,
-        },
-      },
-      include: {
-        images: true,
-      },
-      orderBy: {
-        sortOrder: 'asc',
-      },
-    })
+    const reportIdsList = reportIds.map(sqlValue).join(', ')
+    const observationRows = await prisma.$queryRawUnsafe<RawObservationRow[]>(`
+      SELECT
+        o.${quoteIdentifier(schema.observation.id)} AS "id",
+        o.${quoteIdentifier(schema.observation.reportId)} AS "reportId",
+        o.${quoteIdentifier(schema.observation.title)} AS "title",
+        ${selectExpr('o', schema.observation.titleAr, 'titleAr')},
+        ${selectExpr('o', schema.observation.description, 'description')},
+        ${selectExpr('o', schema.observation.descriptionAr, 'descriptionAr')},
+        o.${quoteIdentifier(schema.observation.riskLevel)} AS "riskLevel",
+        ${schema.observation.status ? `o.${quoteIdentifier(schema.observation.status)}` : `'OPEN'`} AS "status",
+        ${schema.observation.sortOrder ? `o.${quoteIdentifier(schema.observation.sortOrder)}` : '0'} AS "sortOrder"
+      FROM ${quoteIdentifier(schema.observationTable)} o
+      WHERE o.${quoteIdentifier(schema.observation.reportId)} IN (${reportIdsList})
+      ORDER BY ${schema.observation.sortOrder ? `o.${quoteIdentifier(schema.observation.sortOrder)}` : '1'} ASC
+    `)
+
+    const observationIds = observationRows.map((observation) => observation.id)
+    let imagesByObservationId = new Map<string, any[]>()
+
+    if (
+      observationIds.length > 0 &&
+      schema.imageTable &&
+      schema.image.id &&
+      schema.image.observationId &&
+      schema.image.type &&
+      schema.image.url
+    ) {
+      const observationIdsList = observationIds.map(sqlValue).join(', ')
+      const imageRows = await prisma.$queryRawUnsafe<RawImageRow[]>(`
+        SELECT
+          i.${quoteIdentifier(schema.image.id)} AS "id",
+          i.${quoteIdentifier(schema.image.observationId)} AS "observationId",
+          i.${quoteIdentifier(schema.image.type)} AS "type",
+          i.${quoteIdentifier(schema.image.url)} AS "url",
+          ${selectExpr('i', schema.image.originalName, 'originalName')},
+          ${selectExpr('i', schema.image.mimeType, 'mimeType')},
+          ${schema.image.size ? `i.${quoteIdentifier(schema.image.size)}` : 'NULL::integer'} AS "size"
+        FROM ${quoteIdentifier(schema.imageTable)} i
+        WHERE i.${quoteIdentifier(schema.image.observationId)} IN (${observationIdsList})
+      `)
+
+      imagesByObservationId = imageRows.reduce((map, image) => {
+        const current = map.get(image.observationId) ?? []
+        current.push({
+          id: image.id,
+          observationId: image.observationId,
+          type: image.type,
+          url: image.url,
+          originalName: image.originalName ?? undefined,
+          mimeType: image.mimeType ?? undefined,
+          size: image.size ?? undefined,
+        })
+        map.set(image.observationId, current)
+        return map
+      }, new Map<string, any[]>())
+    }
 
     const grouped = new Map<string, any[]>()
-    for (const observation of observations) {
+    for (const observation of observationRows) {
       const current = grouped.get(observation.reportId) ?? []
-      current.push(observation)
+      current.push({
+        id: observation.id,
+        reportId: observation.reportId,
+        title: observation.title,
+        titleAr: observation.titleAr ?? undefined,
+        description: observation.description ?? undefined,
+        descriptionAr: observation.descriptionAr ?? undefined,
+        riskLevel: observation.riskLevel,
+        status: observation.status,
+        sortOrder: observation.sortOrder ?? 0,
+        images: imagesByObservationId.get(observation.id) ?? [],
+      })
       grouped.set(observation.reportId, current)
     }
 

@@ -7,6 +7,9 @@ import { headers } from 'next/headers'
 import { sendNotificationEmail } from '@/lib/email'
 import { createClientAccount, getClientAccountById, listClientAccounts } from '@/lib/client-records'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     await requireAdmin()

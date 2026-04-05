@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
+import { deleteObservationRecord, updateObservationRecord } from '@/lib/observation-records'
+
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function PUT(
   request: Request,
@@ -20,21 +23,26 @@ export async function PUT(
 
     const { title, titleAr, description, descriptionAr, riskLevel, status, sortOrder } = body
 
-    const observation = await prisma.observation.update({
-      where: { id: params.id },
-      data: {
-        title,
-        titleAr,
-        description,
-        descriptionAr,
-        riskLevel,
-        status,
-        sortOrder,
-      },
-      include: {
-        images: true,
-      },
+    await updateObservationRecord(params.id, {
+      title,
+      titleAr,
+      description,
+      descriptionAr,
+      riskLevel,
+      status,
+      sortOrder,
     })
+
+    const observation = {
+      id: params.id,
+      title,
+      titleAr,
+      description,
+      descriptionAr,
+      riskLevel,
+      status,
+      sortOrder,
+    }
 
     await logActivity(
       session.user.id,
@@ -64,9 +72,7 @@ export async function DELETE(
     const headerList = headers()
     const ip = headerList.get('x-forwarded-for') || 'unknown'
 
-    await prisma.observation.delete({
-      where: { id: params.id },
-    })
+    await deleteObservationRecord(params.id)
 
     await logActivity(session.user.id, 'OBSERVATION_DELETED', 'observation', params.id, `Deleted observation`, ip)
 

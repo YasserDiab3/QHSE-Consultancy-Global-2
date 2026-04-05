@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { requireAdmin } from '@/lib/auth'
 import { sendNotificationEmail } from '@/lib/email'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 function isMissingContactRequestTable(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
   return message.includes('ContactRequest') && message.includes('does not exist')
