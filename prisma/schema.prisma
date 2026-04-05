@@ -1,6 +1,7 @@
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
@@ -56,6 +57,35 @@ model ContactRequest {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("ContactRequest")
+}
+
+model JobOpening {
+  id               String   @id @default(uuid())
+  title            String
+  titleAr          String?
+  location         String?
+  locationAr       String?
+  department       String?
+  departmentAr     String?
+  employmentType   String
+  employmentTypeAr String?
+  summary          String
+  summaryAr        String?
+  requirements     String?
+  requirementsAr   String?
+  applyEmail       String?
+  applyUrl         String?
+  status           String   @default("OPEN")
+  isPublished      Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now()) @map("createdat")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat")
+
+  @@index([status])
+  @@index([isPublished])
+  @@index([sortOrder])
+  @@index([createdAt(sort: Desc)])
+  @@map("JobOpening")
 }
 
 model Report {

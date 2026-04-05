@@ -7,6 +7,7 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  BriefcaseBusiness,
   CheckCircle2,
   FileText,
   MessageSquare,
@@ -18,6 +19,7 @@ import AdminReports from './admin-reports'
 import AdminClients from './admin-clients'
 import AdminActivityLog from './admin-activity-log'
 import AdminContactRequests from './admin-contact-requests'
+import AdminJobs from './admin-jobs'
 import toast from 'react-hot-toast'
 
 type DashboardStats = {
@@ -46,7 +48,7 @@ type ReportFilterPreset = {
 } | null
 
 type RequestStatusPreset = 'ALL' | 'NEW' | 'CONTACTED' | 'CLOSED'
-type AdminTab = 'overview' | 'reports' | 'clients' | 'requests' | 'activity'
+type AdminTab = 'overview' | 'reports' | 'clients' | 'jobs' | 'requests' | 'activity'
 
 export default function AdminDashboardClient() {
   const { t, language, dir } = useLanguage()
@@ -104,6 +106,7 @@ export default function AdminDashboardClient() {
       { id: 'overview' as const, label: t('dashboard.title'), icon: BarChart3 },
       { id: 'reports' as const, label: t('admin.reports'), icon: FileText },
       { id: 'clients' as const, label: t('admin.clients'), icon: Users },
+      { id: 'jobs' as const, label: language === 'ar' ? 'الوظائف' : 'Jobs', icon: BriefcaseBusiness },
       { id: 'requests' as const, label: language === 'ar' ? 'طلبات التواصل' : 'Contact Requests', icon: MessageSquare },
       { id: 'activity' as const, label: t('admin.activityLog'), icon: Activity },
     ],
@@ -169,6 +172,7 @@ export default function AdminDashboardClient() {
             <AdminReports onDataChanged={fetchStats} filterPreset={reportFilterPreset} />
           )}
           {activeTab === 'clients' && <AdminClients onDataChanged={fetchStats} />}
+          {activeTab === 'jobs' && <AdminJobs onDataChanged={fetchStats} />}
           {activeTab === 'requests' && (
             <AdminContactRequests
               statusFilter={requestFilterPreset}
