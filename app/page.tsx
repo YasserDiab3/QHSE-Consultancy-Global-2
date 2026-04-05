@@ -223,21 +223,21 @@ export default function HomePage() {
 
       <section className="overflow-hidden bg-white py-20 md:py-24">
         <div className="container-custom">
-          <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="text-center lg:text-start">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
-                <Building2 className="h-4 w-4" />
-                <span>{language === 'ar' ? 'شركاء النجاح' : 'Trusted Partnerships'}</span>
-              </div>
-              <h2 className="section-title">Partners Who Power Our Mission</h2>
-              <p className="section-subtitle">
-                {language === 'ar'
-                  ? 'تصفح شركاءنا بسهولة مع حركة تلقائية وإمكانية العودة أو التقدم باستخدام الأسهم.'
-                  : 'Browse our partners with automatic motion and quick previous/next controls.'}
-              </p>
+          <div className="mb-12 text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
+              <Building2 className="h-4 w-4" />
+              <span>{language === 'ar' ? 'شركاء النجاح' : 'Trusted Partnerships'}</span>
             </div>
+            <h2 className="section-title">
+              {language === 'ar' ? 'شركاء يدعمون رسالتنا' : 'Partners Who Power Our Mission'}
+            </h2>
+            <p className="section-subtitle">
+              {language === 'ar'
+                ? 'تصفح شعارات شركائنا بسهولة مع حركة تلقائية وإمكانية التنقل يمينًا ويسارًا باستخدام الأسهم.'
+                : 'Browse our partners smoothly with automatic motion and simple previous/next controls.'}
+            </p>
 
-            <div className="flex items-center justify-center gap-3 lg:justify-end">
+            <div className="mt-8 flex items-center justify-center gap-3">
               <button
                 type="button"
                 onClick={() => scrollPartners('prev')}
