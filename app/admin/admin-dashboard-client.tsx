@@ -60,12 +60,68 @@ export default function AdminDashboardClient() {
   const fetchStats = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/dashboard', { cache: 'no-store' })
-      if (!res.ok) {
-        throw new Error('Failed to fetch dashboard stats')
-      }
+      const [reportsRes, clientsRes, requestsRes] = await Promise.all([
+        fetch('/api/reports', { cache: 'no-store' }),
+        fetch('/api/clients', { cache: 'no-store' }),
+        fetch('/api/contact', { cache: 'no-store' }),
+      ])
 
-      setStats(await res.json())
+      const reports: any[] = reportsRes.ok ? await reportsRes.json() : []
+      const clients: any[] = clientsRes.ok ? await clientsRes.json() : []
+      const requests: any[] = requestsRes.ok ? await requestsRes.json() : []
+
+      const observations: any[] = reports.flatMap((report: any) => report.observations || [])
+
+      const riskMap = observations
+        .filter((observation: any) => ['OPEN', 'IN_PROGRESS'].includes(observation.status))
+        .reduce((acc: Record<string, number>, observation: any) => {
+          acc[observation.riskLevel] = (acc[observation.riskLevel] ?? 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+
+      const statusMap = reports.reduce((acc: Record<string, number>, report: any) => {
+        acc[report.status] = (acc[report.status] ?? 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      const requestStatusMap = requests.reduce((acc: Record<string, number>, request: any) => {
+        acc[request.status] = (acc[request.status] ?? 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      setStats({
+        totalReports: reports.length,
+        openObservations: observations.filter((observation: any) => observation.status === 'OPEN').length,
+        closedReports: reports.filter((report: any) => report.status === 'CLOSED').length,
+        highRiskItems: observations.filter(
+          (observation: any) =>
+            ['HIGH', 'CRITICAL'].includes(observation.riskLevel) &&
+            ['OPEN', 'IN_PROGRESS'].includes(observation.status)
+        ).length,
+        totalClients: clients.length,
+        totalRequests: requests.length,
+        riskBreakdown: Object.entries(riskMap).map(([riskLevel, count]) => ({
+          riskLevel,
+          _count: { riskLevel: count },
+        })),
+        statusBreakdown: Object.entries(statusMap).map(([status, count]) => ({
+          status,
+          _count: { status: count },
+        })),
+        requestStatusBreakdown: Object.entries(requestStatusMap).map(([status, count]) => ({
+          status,
+          _count: { status: count },
+        })),
+        recentReports: reports
+          .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          .slice(0, 5)
+          .map((report: any) => ({
+            ...report,
+            _count: {
+              observations: report.observations?.length || 0,
+            },
+          })),
+      })
     } catch (error) {
       console.error('Failed to fetch stats:', error)
       setStats(null)
