@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { useLanguage } from '@/context'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
@@ -15,10 +16,13 @@ import {
   Users,
   Clock,
   Building2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
 export default function HomePage() {
   const { t, dir, language } = useLanguage()
+  const partnersRef = useRef<HTMLDivElement>(null)
 
   const allServiceCards = getAllServiceCards(t, language)
 
@@ -75,7 +79,42 @@ export default function HomePage() {
           { name: 'United Vision', accent: 'from-sky-500/15 to-sky-100', mark: 'U' },
         ]
 
-  const marqueeClients = [...clientLogos, ...clientLogos]
+  useEffect(() => {
+    const container = partnersRef.current
+    if (!container) {
+      return
+    }
+
+    const step = 320
+    const timer = window.setInterval(() => {
+      const maxScroll = container.scrollWidth - container.clientWidth
+      if (maxScroll <= 0) {
+        return
+      }
+
+      if (dir === 'rtl') {
+        const next = container.scrollLeft <= 0 ? maxScroll : Math.max(container.scrollLeft - step, 0)
+        container.scrollTo({ left: next, behavior: 'smooth' })
+      } else {
+        const next = container.scrollLeft >= maxScroll - 4 ? 0 : Math.min(container.scrollLeft + step, maxScroll)
+        container.scrollTo({ left: next, behavior: 'smooth' })
+      }
+    }, 3200)
+
+    return () => window.clearInterval(timer)
+  }, [dir, language])
+
+  const scrollPartners = (direction: 'next' | 'prev') => {
+    const container = partnersRef.current
+    if (!container) {
+      return
+    }
+
+    const amount = 340
+    const isNext = direction === 'next'
+    const delta = dir === 'rtl' ? (isNext ? -amount : amount) : isNext ? amount : -amount
+    container.scrollBy({ left: delta, behavior: 'smooth' })
+  }
 
   return (
     <div className="min-h-screen">
@@ -185,28 +224,51 @@ export default function HomePage() {
 
       <section className="overflow-hidden bg-white py-20 md:py-24">
         <div className="container-custom">
-          <div className="mb-12 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
-              <Building2 className="h-4 w-4" />
-              <span>{language === 'ar' ? 'شركاء النجاح' : 'Trusted Partnerships'}</span>
+          <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="text-center lg:text-start">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-primary-50 px-4 py-2 text-sm font-semibold text-primary-700">
+                <Building2 className="h-4 w-4" />
+                <span>{language === 'ar' ? 'شركاء النجاح' : 'Trusted Partnerships'}</span>
+              </div>
+              <h2 className="section-title">Partners Who Power Our Mission</h2>
+              <p className="section-subtitle">
+                {language === 'ar'
+                  ? 'تصفح شركاءنا بسهولة مع حركة تلقائية وإمكانية العودة أو التقدم باستخدام الأسهم.'
+                  : 'Browse our partners with automatic motion and quick previous/next controls.'}
+              </p>
             </div>
-            <h2 className="section-title">{language === 'ar' ? 'عملاؤنا' : 'Our Clients'}</h2>
-            <p className="section-subtitle">
-              {language === 'ar'
-                ? 'نفخر بخدمة مؤسسات وشركات في قطاعات متعددة ضمن شراكات طويلة المدى مبنية على الثقة والنتائج.'
-                : 'We are proud to support organizations across sectors through long-term partnerships built on trust and results.'}
-            </p>
+
+            <div className="flex items-center justify-center gap-3 lg:justify-end">
+              <button
+                type="button"
+                onClick={() => scrollPartners('prev')}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-primary-200 hover:text-primary-600 hover:shadow-md"
+                aria-label={language === 'ar' ? 'عرض الشركاء السابقين' : 'Previous partners'}
+              >
+                {dir === 'rtl' ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollPartners('next')}
+                className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:border-primary-200 hover:text-primary-600 hover:shadow-md"
+                aria-label={language === 'ar' ? 'عرض الشركاء التاليين' : 'Next partners'}
+              >
+                {dir === 'rtl' ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+              </button>
+            </div>
           </div>
 
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-white to-transparent" />
             <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-white to-transparent" />
 
-            <div className="flex overflow-hidden">
-              <div className="client-marquee flex min-w-max items-stretch gap-6 py-4">
-                {marqueeClients.map((client, index) => (
+            <div
+              ref={partnersRef}
+              className="flex snap-x snap-mandatory gap-6 overflow-x-auto py-4 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            >
+              {clientLogos.map((client, index) => (
+                <div key={`${client.name}-${index}`} className="snap-start">
                   <div
-                    key={`${client.name}-${index}`}
                     className={`group flex h-32 w-[240px] shrink-0 flex-col justify-between rounded-3xl border border-gray-200 bg-gradient-to-br ${client.accent} p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -224,45 +286,11 @@ export default function HomePage() {
                       </p>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-
-        <style jsx>{`
-          .client-marquee {
-            animation: client-marquee 26s linear infinite;
-          }
-
-          .client-marquee:hover {
-            animation-play-state: paused;
-          }
-
-          @keyframes client-marquee {
-            from {
-              transform: translateX(0);
-            }
-
-            to {
-              transform: translateX(50%);
-            }
-          }
-
-          html[dir='rtl'] .client-marquee {
-            animation-name: client-marquee-rtl;
-          }
-
-          @keyframes client-marquee-rtl {
-            from {
-              transform: translateX(0);
-            }
-
-            to {
-              transform: translateX(-50%);
-            }
-          }
-        `}</style>
       </section>
 
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 to-primary-900 py-20 md:py-28">
