@@ -2,9 +2,6 @@ import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 
 export async function POST(request: Request) {
   try {
@@ -25,23 +22,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads')
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Image file is too large' }, { status: 400 })
     }
 
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg'
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`
-    const filepath = join(uploadDir, filename)
-
-    await writeFile(filepath, buffer)
-
-    const imageUrl = `/uploads/${filename}`
+    const imageUrl = `data:${file.type || 'image/jpeg'};base64,${Buffer.from(bytes).toString('base64')}`
 
     // Create image record in database
     const { prisma } = await import('@/lib/prisma')

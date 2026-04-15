@@ -4,14 +4,11 @@ import { useLanguage } from '@/context'
 import { useState, useCallback, useEffect } from 'react'
 import {
   Plus,
-  Search,
-  Filter,
   Edit,
   Trash2,
   Eye,
   X,
   Loader2,
-  ChevronLeft,
   Image as ImageIcon,
 } from 'lucide-react'
 import { getRiskLevelColor, getStatusColor, getCategoryColor } from '@/lib/colors'
@@ -30,6 +27,61 @@ type Report = {
   client?: { id: string; companyName?: string }
   observations: any[]
   consultant?: { name: string }
+}
+
+type ObservationImage = {
+  id: string
+  type: string
+  url: string
+  originalName?: string
+}
+
+const OBSERVATION_IMAGE_TYPES = ['BEFORE', 'AFTER', 'EVIDENCE'] as const
+
+function ObservationImages({
+  images,
+  t,
+}: {
+  images: ObservationImage[]
+  t: (key: string) => string
+}) {
+  const groups = OBSERVATION_IMAGE_TYPES.map((type) => ({
+    type,
+    label:
+      type === 'BEFORE'
+        ? t('reports.before')
+        : type === 'AFTER'
+          ? t('reports.after')
+          : t('reports.photos'),
+    items: images.filter((image) => image.type === type),
+  })).filter((group) => group.items.length > 0)
+
+  if (groups.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {groups.map((group) => (
+        <div key={group.type}>
+          <div className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-600">
+            <ImageIcon className="h-4 w-4 text-gray-400" />
+            <span>{group.label}</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {group.items.map((img) => (
+              <img
+                key={img.id}
+                src={img.url}
+                alt={group.label}
+                className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 const createInitialFormData = () => ({
@@ -417,6 +469,7 @@ function ViewReportModal({
   const [observations, setObservations] = useState<any[]>(report.observations || [])
   const [newObs, setNewObs] = useState({ title: '', titleAr: '', description: '', descriptionAr: '', riskLevel: 'LOW', status: 'OPEN' })
   const [showObsForm, setShowObsForm] = useState(false)
+  const [uploadingImageTarget, setUploadingImageTarget] = useState<string | null>(null)
 
   const addObservation = async () => {
     if (!newObs.title) return
@@ -459,6 +512,56 @@ function ViewReportModal({
       toast.success(t('admin.deleted'))
     } catch {
       toast.error(t('common.error'))
+    }
+  }
+
+  const uploadObservationImages = async (
+    observationId: string,
+    type: 'BEFORE' | 'AFTER',
+    files: FileList | null
+  ) => {
+    if (!files || files.length === 0) {
+      return
+    }
+
+    const targetKey = `${observationId}-${type}`
+    setUploadingImageTarget(targetKey)
+
+    try {
+      const uploadedImages: ObservationImage[] = []
+
+      for (const file of Array.from(files)) {
+        const payload = new FormData()
+        payload.append('file', file)
+        payload.append('observationId', observationId)
+        payload.append('type', type)
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: payload,
+        })
+        const data = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          throw new Error(data?.error || t('common.error'))
+        }
+
+        uploadedImages.push(data)
+      }
+
+      setObservations((prev) =>
+        prev.map((obs) =>
+          obs.id === observationId
+            ? { ...obs, images: [...(obs.images || []), ...uploadedImages] }
+            : obs
+        )
+      )
+      await onDataChanged?.()
+      toast.success(t('common.success'))
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('common.error'))
+    } finally {
+      setUploadingImageTarget(null)
     }
   }
 
@@ -575,17 +678,53 @@ function ViewReportModal({
                       {(obs.description || obs.descriptionAr) && (
                         <p className="text-sm text-gray-600">{language === 'ar' && obs.descriptionAr ? obs.descriptionAr : obs.description}</p>
                       )}
-                      {obs.images?.length > 0 && (
-                        <div className="flex gap-2 mt-2 overflow-x-auto">
-                          {obs.images.map((img: any) => (
-                            <img key={img.id} src={img.url} alt="" className="w-12 h-12 rounded object-cover" />
-                          ))}
-                        </div>
-                      )}
+                      <ObservationImages images={obs.images || []} t={t} />
                     </div>
-                    <button onClick={() => deleteObservation(obs.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div className="flex flex-col items-end gap-2">
+                      <label className="cursor-pointer rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-100">
+                        {uploadingImageTarget === `${obs.id}-BEFORE` ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            {t('common.upload')}
+                          </span>
+                        ) : (
+                          t('reports.before')
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(event) => {
+                            void uploadObservationImages(obs.id, 'BEFORE', event.target.files)
+                            event.currentTarget.value = ''
+                          }}
+                        />
+                      </label>
+                      <label className="cursor-pointer rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium text-gray-600 transition hover:bg-gray-100">
+                        {uploadingImageTarget === `${obs.id}-AFTER` ? (
+                          <span className="inline-flex items-center gap-1">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            {t('common.upload')}
+                          </span>
+                        ) : (
+                          t('reports.after')
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          className="hidden"
+                          onChange={(event) => {
+                            void uploadObservationImages(obs.id, 'AFTER', event.target.files)
+                            event.currentTarget.value = ''
+                          }}
+                        />
+                      </label>
+                      <button onClick={() => deleteObservation(obs.id)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 )
               })}

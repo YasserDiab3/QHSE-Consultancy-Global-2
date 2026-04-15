@@ -59,6 +59,54 @@ type Image = {
   url: string
 }
 
+const OBSERVATION_IMAGE_TYPES = ['BEFORE', 'AFTER', 'EVIDENCE'] as const
+
+function ObservationImages({
+  images,
+  t,
+}: {
+  images: Image[]
+  t: (key: string) => string
+}) {
+  const groups = OBSERVATION_IMAGE_TYPES.map((type) => ({
+    type,
+    label:
+      type === 'BEFORE'
+        ? t('reports.before')
+        : type === 'AFTER'
+          ? t('reports.after')
+          : t('reports.photos'),
+    items: images.filter((image) => image.type === type),
+  })).filter((group) => group.items.length > 0)
+
+  if (groups.length === 0) {
+    return null
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {groups.map((group) => (
+        <div key={group.type}>
+          <div className="mb-2 flex items-center gap-2 text-sm text-gray-500">
+            <ImageIcon className="h-4 w-4 text-gray-400" />
+            <span>{group.label}</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto">
+            {group.items.map((img) => (
+              <img
+                key={img.id}
+                src={img.url}
+                alt={group.label}
+                className="h-16 w-16 rounded-lg border border-gray-200 object-cover"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ClientDashboard() {
   const { t, language, dir } = useLanguage()
   const { data: session } = useSession()
@@ -421,22 +469,7 @@ function ReportDetail({
                         {language === 'ar' && obs.descriptionAr ? obs.descriptionAr : obs.description}
                       </p>
                     )}
-                    {obs.images.length > 0 && (
-                      <div className="flex items-center gap-3 mt-3">
-                        <ImageIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{obs.images.length} {t('reports.photos')}</span>
-                        <div className="flex gap-2 overflow-x-auto">
-                          {obs.images.map((img) => (
-                            <img
-                              key={img.id}
-                              src={img.url}
-                              alt={img.type}
-                              className="w-16 h-16 rounded-lg object-cover border border-gray-200"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <ObservationImages images={obs.images} t={t} />
                   </div>
                 </div>
               </div>
