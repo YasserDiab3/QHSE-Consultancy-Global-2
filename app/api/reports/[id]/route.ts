@@ -19,6 +19,10 @@ export async function PUT(
     const body = await request.json()
 
     const { date, siteName, siteNameAr, category, consultantId, notes, notesAr, status } = body
+    const normalizedConsultantId =
+      typeof consultantId === 'string' && consultantId.trim().length > 0
+        ? consultantId.trim()
+        : session.user.id
 
     const existingReport = await getReportRecordById(params.id)
     if (!existingReport) {
@@ -30,7 +34,7 @@ export async function PUT(
       siteName,
       siteNameAr,
       category,
-      consultantId,
+      consultantId: normalizedConsultantId,
       notes,
       notesAr,
       status,

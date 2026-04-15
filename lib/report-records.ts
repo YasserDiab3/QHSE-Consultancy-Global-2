@@ -473,6 +473,21 @@ export async function listReportRecords(options: ListReportOptions = {}) {
   )
 }
 
+export async function backfillMissingReportConsultantIds(defaultConsultantId: string) {
+  const schema = await getSchemaInfo()
+
+  if (!schema.report.consultantId || !defaultConsultantId) {
+    return 0
+  }
+
+  return prisma.$executeRawUnsafe(`
+    UPDATE ${quoteIdentifier(schema.reportTable)}
+    SET ${quoteIdentifier(schema.report.consultantId)} = ${sqlValue(defaultConsultantId)}
+    WHERE ${quoteIdentifier(schema.report.consultantId)} IS NULL
+       OR CAST(${quoteIdentifier(schema.report.consultantId)} AS TEXT) = ''
+  `)
+}
+
 export async function getReportRecordById(id: string) {
   const reports = await listReportRecords({ id })
   return reports[0] ?? null

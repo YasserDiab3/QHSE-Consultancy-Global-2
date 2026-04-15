@@ -4,7 +4,12 @@ import { logActivity } from '@/lib/activity-log'
 import { headers } from 'next/headers'
 import { sendNotificationEmail } from '@/lib/email'
 import { getClientIdByUserId } from '@/lib/client-records'
-import { createReportRecord, getReportRecordById, listReportRecords } from '@/lib/report-records'
+import {
+  backfillMissingReportConsultantIds,
+  createReportRecord,
+  getReportRecordById,
+  listReportRecords,
+} from '@/lib/report-records'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -29,6 +34,8 @@ export async function GET(request: Request) {
       if (!clientId) {
         return NextResponse.json([])
       }
+    } else if (session.user.role === 'ADMIN') {
+      await backfillMissingReportConsultantIds(session.user.id)
     }
 
     const reports = await listReportRecords({
@@ -58,6 +65,10 @@ export async function POST(request: Request) {
     const body = await request.json()
 
     const { clientId, date, siteName, siteNameAr, category, consultantId, notes, notesAr, status } = body
+    const normalizedConsultantId =
+      typeof consultantId === 'string' && consultantId.trim().length > 0
+        ? consultantId.trim()
+        : session.user.id
 
     if (!clientId || !date || !siteName || !category) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
       siteNameAr,
       category,
       status: status || 'OPEN',
-      consultantId,
+      consultantId: normalizedConsultantId,
       notes,
       notesAr,
     })
