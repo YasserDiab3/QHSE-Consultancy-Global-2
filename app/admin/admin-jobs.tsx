@@ -695,8 +695,7 @@ export default function AdminJobs({
                         {application.resumeUrl ? (
                           <a
                             href={application.resumeUrl}
-                            target="_blank"
-                            rel="noreferrer"
+                            download={application.resumeOriginalName || undefined}
                             className="inline-flex text-sm font-medium text-primary-600 hover:text-primary-700"
                           >
                             {application.resumeOriginalName || (language === 'ar' ? 'عرض السيرة الذاتية' : 'View resume')}

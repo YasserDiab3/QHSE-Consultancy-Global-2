@@ -4,10 +4,7 @@ import { getSession, requireAdmin } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { logActivity } from '@/lib/activity-log'
 import { sendNotificationEmail } from '@/lib/email'
-import { mkdir, writeFile } from 'fs/promises'
-import { existsSync } from 'fs'
-import { join, extname } from 'path'
-import { randomUUID } from 'crypto'
+import { extname } from 'path'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -31,6 +28,22 @@ const MAX_RESUME_SIZE_BYTES = 5 * 1024 * 1024
 
 function sanitizeFilename(filename: string) {
   return filename.replace(/[^a-zA-Z0-9._-]/g, '-')
+}
+
+function resolveResumeMimeType(mimeType: string | undefined, extension: string) {
+  if (mimeType) {
+    return mimeType
+  }
+
+  if (extension === '.doc') {
+    return 'application/msword'
+  }
+
+  if (extension === '.docx') {
+    return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  }
+
+  return 'application/pdf'
 }
 
 export async function GET() {
@@ -100,20 +113,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Job opening not found' }, { status: 404 })
     }
 
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'job-applications')
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true })
-    }
-
     const safeOriginalName = sanitizeFilename(resume.name || 'resume')
-    const uniqueFilename = `${Date.now()}-${randomUUID()}${resumeExtension || '.pdf'}`
-    const filepath = join(uploadDir, uniqueFilename)
     const bytes = await resume.arrayBuffer()
-    await writeFile(filepath, Buffer.from(bytes))
-
-    const resumeUrl = `/uploads/job-applications/${uniqueFilename}`
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || ''
-    const resumeLink = appUrl ? `${appUrl}${resumeUrl}` : resumeUrl
+    const resumeMimeTypeResolved = resolveResumeMimeType(resumeMimeType || undefined, resumeExtension)
+    const resumeUrl = `data:${resumeMimeTypeResolved};base64,${Buffer.from(bytes).toString('base64')}`
 
     const application = await prisma.jobApplication.create({
       data: {
@@ -139,8 +142,8 @@ export async function POST(request: Request) {
       await sendNotificationEmail({
         to: notificationTarget,
         subject: `New job application: ${jobOpening.title}`,
-        text: `A new application has been submitted for ${jobOpening.title}.\n\nName: ${name}\nEmail: ${email}\nPhone: ${normalizeText(formData.get('phone')) || '-'}\nCompany: ${normalizeText(formData.get('company')) || '-'}\nResume: ${resumeLink}\nCover letter:\n${normalizeText(formData.get('coverLetter')) || '-'}`,
-        html: `<p>A new application has been submitted for <strong>${jobOpening.title}</strong>.</p><ul><li><strong>Name:</strong> ${name}</li><li><strong>Email:</strong> ${email}</li><li><strong>Phone:</strong> ${normalizeText(formData.get('phone')) || '-'}</li><li><strong>Company:</strong> ${normalizeText(formData.get('company')) || '-'}</li><li><strong>Resume:</strong> <a href="${resumeLink}">${safeOriginalName}</a></li></ul><p><strong>Cover letter:</strong></p><p>${(normalizeText(formData.get('coverLetter')) || '-').replace(/\n/g, '<br />')}</p>`,
+        text: `A new application has been submitted for ${jobOpening.title}.\n\nName: ${name}\nEmail: ${email}\nPhone: ${normalizeText(formData.get('phone')) || '-'}\nCompany: ${normalizeText(formData.get('company')) || '-'}\nResume file: ${safeOriginalName}\nResume access: available inside the admin dashboard.\nCover letter:\n${normalizeText(formData.get('coverLetter')) || '-'}`,
+        html: `<p>A new application has been submitted for <strong>${jobOpening.title}</strong>.</p><ul><li><strong>Name:</strong> ${name}</li><li><strong>Email:</strong> ${email}</li><li><strong>Phone:</strong> ${normalizeText(formData.get('phone')) || '-'}</li><li><strong>Company:</strong> ${normalizeText(formData.get('company')) || '-'}</li><li><strong>Resume file:</strong> ${safeOriginalName}</li><li><strong>Resume access:</strong> Available inside the admin dashboard.</li></ul><p><strong>Cover letter:</strong></p><p>${(normalizeText(formData.get('coverLetter')) || '-').replace(/\n/g, '<br />')}</p>`,
       }).catch((emailError) => {
         console.error('Failed to send job application notification:', emailError)
       })
